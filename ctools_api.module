@@ -39,6 +39,9 @@ spl_autoload_register(function ($namespace) {
  *
  * @param string $path
  *   Path to directory with objects.
+ *
+ * @return string[]
+ *   Paths to plugin sources.
  */
 function ctools_api_register_autoloader_path($path = '') {
   static $paths = [];
@@ -91,103 +94,33 @@ function ctools_api_search_plugins() {
   return $files;
 }
 
-function ctools_api_get_plugins($original_plugin_type) {
-  $constructor = "ctools_api_$original_plugin_type";
-
-  if (!function_exists($constructor)) {
-    throw new \InvalidArgumentException(t('The "@type" plugin type is unsupported!', [
-      '@type' => $original_plugin_type,
-    ]));
-  }
-
-  $plugin_type = ucfirst(ctools_api_to_camel_case($original_plugin_type));
-  $namespace = array_merge(ctools_api_namespace(), [$plugin_type]);
+function ctools_api_get_plugins($plugin_type) {
+  $namespace = ucfirst(ctools_api_to_camel_case($plugin_type));
   $plugins = [];
 
   foreach (ctools_api_search_plugins() as $file) {
     ctools_api_register_autoloader_path($file->sources);
 
-    $interface = implode('\\', array_merge($namespace, [$plugin_type . 'Interface']));
-
-    if (isset($file->implements[$interface])) {
-      $plugins[$file->object] = array_merge(ctools_api_base_plugin_assets($constructor(ctools_api_base_plugin_info($file->uri, $file->object), $original_plugin_type, $file->implements, $file->object)), [
-        'name' => $file->name,
-        'path' => dirname($file->uri),
-        'file' => $file->filename,
-        'object' => $file->object,
-        'location' => $file->uri,
-        'plugin type' => $original_plugin_type,
-        'plugin module' => $file->module_name,
-        'plugin module path' => $file->module_path,
-      ]);
+    if (isset($file->implements[implode('\\', ['CTools', 'Plugins', $namespace, $namespace . 'Interface'])])) {
+      try {
+        $plugins[$file->object] = array_merge((new \CTools\PluginConstructor($file->object, $file->implements, $plugin_type))->getInfo(), [
+          'name' => $file->name,
+          'path' => dirname($file->uri),
+          'file' => $file->filename,
+          'object' => $file->object,
+          'location' => $file->uri,
+          'plugin type' => $plugin_type,
+          'plugin module' => $file->module_name,
+          'plugin module path' => $file->module_path,
+        ]);
+      }
+      catch (\Exception $e) {
+        watchdog_exception(CTOOLS_API_MODULE_TITLE, $e);
+      }
     }
   }
 
   return $plugins;
-}
-
-/**
- * @param string $path
- * @param \CTools\Plugins\ContentTypes\ContentTypesInterface|string $object
- *
- * @return array
- */
-function ctools_api_base_plugin_info($path, $object) {
-  $information = $object::info();
-  $dependencies = $object::dependencies();
-
-  $information['title'] = $object::name();
-  $information['machine_name'] = ctools_api_to_underscore(pathinfo($path, PATHINFO_FILENAME));
-
-  // Process content type dependencies.
-  if (!empty($dependencies)) {
-    $disabled = array_diff_key($dependencies, array_filter(array_map('module_exists', $dependencies)));
-
-    if (!empty($disabled)) {
-      watchdog(CTOOLS_API_MODULE_TITLE, 'The following dependencies of "@title" content type are disabled or does not exists: "@modules".', [
-        '@title' => $information['title'],
-        '@modules' => implode('", "', $disabled),
-      ]);
-
-      return [];
-    }
-  }
-
-  return $information;
-}
-
-function ctools_api_base_plugin_assets(array $information) {
-  static $theme_registry = [];
-
-  if (empty($information['theme hooks'])) {
-    return $information;
-  }
-
-  if (empty($theme_registry)) {
-    $theme_registry = theme_get_registry();
-  }
-
-  // @see ctools_api_set_plugin_theme_variants()
-  foreach ($information['theme hooks'] as $data) {
-    list($variant, $hook) = $data;
-
-    if (!isset($theme_registry[$hook])) {
-      continue;
-    }
-
-    // Generate paths for assets:
-    // - "themes/bartik/css/ctools/content-types/example/example--default.css";
-    // - "themes/bartik/js/ctools/content-types/example/example--default.js";
-    foreach (['css', 'js'] as $asset) {
-      $information[$asset][] = str_replace(
-        ['_', 'templates'],
-        ['-', $asset],
-        "{$theme_registry[$hook]['path']}/{$information['machine_name']}--$variant.$asset"
-      );
-    }
-  }
-
-  return $information;
 }
 
 /**

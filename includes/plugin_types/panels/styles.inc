@@ -13,21 +13,14 @@
  *   Native plugin type.
  * @param string[] $interfaces
  *   Implemented interfaces.
- * @param \CTools\Plugins\Styles\StylesInterface|string $object
- *   Plugin object (static).
- *
- * @return array
- *   Updated plugin definition.
  */
-function ctools_api_styles(array $information, $plugin_type, array $interfaces, $object) {
+function ctools_api_styles(array &$information, $plugin_type, array $interfaces) {
   foreach (['pane', 'region'] as $renderer) {
     if (isset($interfaces['CTools\Plugins\Styles\Styles' . ucfirst($renderer) . 'Interface'])) {
       $prefix = 'pane' === $renderer ? "$renderer " : '';
 
       $information['render ' . $renderer] = "_ctools_api_{$plugin_type}_base_render_$renderer";
       $information[$prefix . 'settings form'] = "_ctools_api_{$plugin_type}_base_settings_form";
-
-      ctools_api_set_plugin_theme_variants($information, $object);
       break;
     }
   }
@@ -35,8 +28,6 @@ function ctools_api_styles(array $information, $plugin_type, array $interfaces, 
   // Prevent creation of additional theme suggestions.
   // @see panels_theme()
   unset($information['hook theme']);
-
-  return $information;
 }
 
 /**

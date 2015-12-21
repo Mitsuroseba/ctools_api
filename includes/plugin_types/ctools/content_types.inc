@@ -13,23 +13,14 @@
  *   Native plugin type.
  * @param string[] $interfaces
  *   Implemented interfaces.
- * @param \CTools\Plugins\ContentTypes\ContentTypesInterface|string $object
- *   Plugin object (static).
- *
- * @return array
- *   Updated plugin definition.
  */
-function ctools_api_content_types(array $information, $plugin_type, array $interfaces, $object) {
+function ctools_api_content_types(array &$information, $plugin_type, array $interfaces) {
   $information['render callback'] = "_ctools_api_{$plugin_type}_base_render";
   $information['edit form'] = "_ctools_api_{$plugin_type}_base_settings_form";
 
   if (!isset($information['category'])) {
     $information['category'] = CTOOLS_API_MODULE_TITLE;
   }
-
-  ctools_api_set_plugin_theme_variants($information, $object);
-
-  return $information;
 }
 
 /**

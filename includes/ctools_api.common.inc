@@ -5,30 +5,6 @@
  */
 
 /**
- * Get namespace of a module component.
- *
- * @param string|string[] $compare
- *   Namespace string or parts.
- *
- * @return string[]
- *   Basic namespace when no comparisons, empty - if
- *   comparison failed, namespace object - in other cases.
- */
-function ctools_api_namespace($compare = NULL) {
-  $base = ['CTools', 'Plugins'];
-
-  if (isset($compare)) {
-    if (is_string($compare)) {
-      $compare = explode('\\', $compare);
-    }
-
-    $base = array_slice($compare, 0, count($base)) === $base ? $compare : [];
-  }
-
-  return $base;
-}
-
-/**
  * Convert string to "camelCase" format.
  *
  * @param string $argument
@@ -68,27 +44,6 @@ function ctools_api_to_underscore($argument) {
  */
 function ctools_api_to_dashes($argument) {
   return str_replace(['_', ':'], '-', ctools_api_to_underscore($argument));
-}
-
-/**
- * Generate theme suggestions for CTools content type.
- *
- * @param array $data
- *   Updated array of CTools content type definition.
- * @param string $plugin_name
- *   Plugin machine name.
- */
-function ctools_api_set_plugin_theme_variants(array &$data, $plugin_name) {
-  if (!isset($data['theme variants']) || !is_array($data['theme variants'])) {
-    $data['theme variants'] = [];
-  }
-
-  $data['theme variants']['default'] = t('Default');
-
-  // Create all theme suggestions.
-  foreach ($data['theme variants'] as $variant => $title) {
-    $data['theme hooks'][] = [$variant, ctools_api_theme_hook($plugin_name, $variant)];
-  }
 }
 
 /**
