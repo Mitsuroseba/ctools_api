@@ -1,15 +1,15 @@
 <?php
 /**
  * @file
- * CTools API Styles Region Interface.
+ * CTools Plugins Styles Region Interface.
  */
 
-namespace CTools\API\Styles;
+namespace CTools\Plugins\Styles;
 
 /**
  * Interface StylesRegionInterface.
  *
- * @package CTools\API\Styles
+ * @package CTools\Plugins\Styles
  */
 interface StylesRegionInterface extends StylesInterface {
 

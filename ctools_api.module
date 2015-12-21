@@ -3,75 +3,124 @@
  * @file
  * Chaos Tool Suite API.
  *
- * @author Sergey Bondarenko <broken@propeople.com.ua>
+ * @author Sergii Bondarenko <sb@firstvector.org>
  */
 
-define('CTOOLS_API_MODULE_PATH', drupal_get_path('module', 'ctools_api'));
+// Easiest way to obtain path to location directory.
+define('CTOOLS_API_MODULE_PATH', trim(str_replace(DRUPAL_ROOT, '/', __DIR__), '/'));
+define('CTOOLS_API_MODULE_TITLE', 'CTools API');
 
-require_once 'includes/autoload/ctools_api.content_types.inc';
-require_once 'includes/autoload/ctools_api.styles.inc';
+// Include auxiliary functionality.
+require_once 'includes/ctools_api.common.inc';
+// Include API for "styles" plugins provided by Panels.
+require_once 'includes/plugin_types/panels/styles.inc';
+// Include API for "content_types" plugins provided by CTools.
+require_once 'includes/plugin_types/ctools/content_types.inc';
 
-// @codingStandardsIgnoreStart
+ctools_api_register_autoloader_path(CTOOLS_API_MODULE_PATH . '/includes');
+
 spl_autoload_register(function ($namespace) {
-  $namespace_parts = explode('\\', $namespace);
+  $namespace = str_replace('\\', '/', $namespace);
 
-  if (['CTools', 'API'] === array_slice($namespace_parts, 0, 2)) {
-    $file = CTOOLS_API_MODULE_PATH . '/includes/' . implode('/', $namespace_parts) . '.inc';
+  // @codingStandardsIgnoreStart
+  foreach (ctools_api_register_autoloader_path() as $path) {
+    $file = "$path/$namespace.inc";
 
     if (file_exists($file)) {
       require_once $file;
+      break;
     }
   }
+  // @codingStandardsIgnoreEnd
 });
-// @codingStandardsIgnoreEnd
 
-function ctools_api_get_plugins($type, $reset = TRUE) {
+/**
+ * Register objects loader.
+ *
+ * @param string $path
+ *   Path to directory with objects.
+ */
+function ctools_api_register_autoloader_path($path = '') {
+  static $paths = [];
+
+  if (!empty($path) && !isset($paths[$path])) {
+    $paths[$path] = $path;
+  }
+
+  return $paths;
+}
+
+function ctools_api_search_plugins() {
   $cache = cache_get(__FUNCTION__);
-  $plugin = ucfirst(ctools_api_to_camel_case($type));
-  $plugins = [];
+  $files = [];
 
-  if ($reset || (FALSE === $cache || empty($cache->data))) {
+  if (FALSE === $cache || empty($cache->data)) {
     $hook = 'ctools_api_plugins_directory';
 
     foreach (module_implements($hook) as $module_name) {
-      $module_path = drupal_get_path('module', $module_name);
       $function = $module_name . '_' . $hook;
 
       if (function_exists($function)) {
-        $directory = $module_path . '/' . $function();
+        $module_path = drupal_get_path('module', $module_name);
+        $sources = $module_path . '/' . $function();
 
-        foreach (file_scan_directory($directory, '/\.inc$/') as $file) {
-          require_once $file->uri;
+        ctools_api_register_autoloader_path($sources);
 
-          // @todo
-          $namespace = implode('\\', ['CTools', 'API', $plugin, $file->name]);
-          $interface = implode('\\', ['CTools', 'API', $plugin, $plugin . 'Interface']);
-          $function = "ctools_api_$type";
+        foreach (file_scan_directory($sources, '/\.inc$/') as $file) {
+          $object = str_replace('/', '\\', trim(str_replace([$sources, '.inc'], '', $file->uri), '/'));
 
-          if (
-            class_exists($namespace) &&
-            in_array($interface, class_implements($namespace)) &&
-            function_exists($function)
-          ) {
-            $plugins[$file->name] = array_merge(ctools_api_base_plugin_assets($function(ctools_api_base_plugin_info($file->uri, $namespace), $namespace, $type)), [
-              'name' => $file->name,
-              'path' => dirname($file->uri),
-              'file' => basename($file->uri),
-              'object' => $namespace,
-              'module' => $module_name,
-              'location' => $file->uri,
-              'plugin type' => $type,
-              'plugin module' => $module_name,
-            ]);
+          if (class_exists($object)) {
+            $file->object = $object;
+            $file->sources = $sources;
+            $file->implements = class_implements($object);
+            $file->module_name = $module_name;
+            $file->module_path = $module_path;
+
+            $files[] = $file;
           }
         }
       }
     }
 
-    cache_set(__FUNCTION__, $plugins);
+    cache_set(__FUNCTION__, $files);
   }
   else {
-    $plugins = $cache->data;
+    $files = $cache->data;
+  }
+
+  return $files;
+}
+
+function ctools_api_get_plugins($original_plugin_type) {
+  $constructor = "ctools_api_$original_plugin_type";
+
+  if (!function_exists($constructor)) {
+    throw new \InvalidArgumentException(t('The "@type" plugin type is unsupported!', [
+      '@type' => $original_plugin_type,
+    ]));
+  }
+
+  $plugin_type = ucfirst(ctools_api_to_camel_case($original_plugin_type));
+  $namespace = array_merge(ctools_api_namespace(), [$plugin_type]);
+  $plugins = [];
+
+  foreach (ctools_api_search_plugins() as $file) {
+    ctools_api_register_autoloader_path($file->sources);
+
+    $interface = implode('\\', array_merge($namespace, [$plugin_type . 'Interface']));
+
+    if (isset($file->implements[$interface])) {
+      $plugins[$file->object] = array_merge(ctools_api_base_plugin_assets($constructor(ctools_api_base_plugin_info($file->uri, $file->object), $original_plugin_type, $file->implements, $file->object)), [
+        'name' => $file->name,
+        'path' => dirname($file->uri),
+        'file' => $file->filename,
+        'object' => $file->object,
+        'location' => $file->uri,
+        'plugin type' => $original_plugin_type,
+        'plugin module' => $file->module_name,
+        'plugin module path' => $file->module_path,
+      ]);
+    }
   }
 
   return $plugins;
@@ -79,7 +128,7 @@ function ctools_api_get_plugins($type, $reset = TRUE) {
 
 /**
  * @param string $path
- * @param \CTools\API\ContentTypes\ContentTypesInterface|string $object
+ * @param \CTools\Plugins\ContentTypes\ContentTypesInterface|string $object
  *
  * @return array
  */
@@ -95,7 +144,7 @@ function ctools_api_base_plugin_info($path, $object) {
     $disabled = array_diff_key($dependencies, array_filter(array_map('module_exists', $dependencies)));
 
     if (!empty($disabled)) {
-      watchdog('CTools API', 'The following dependencies of "@title" content type are disabled or does not exists: "@modules".', [
+      watchdog(CTOOLS_API_MODULE_TITLE, 'The following dependencies of "@title" content type are disabled or does not exists: "@modules".', [
         '@title' => $information['title'],
         '@modules' => implode('", "', $disabled),
       ]);
@@ -110,56 +159,35 @@ function ctools_api_base_plugin_info($path, $object) {
 function ctools_api_base_plugin_assets(array $information) {
   static $theme_registry = [];
 
+  if (empty($information['theme hooks'])) {
+    return $information;
+  }
+
   if (empty($theme_registry)) {
     $theme_registry = theme_get_registry();
   }
 
-  if (empty($information['theme suggestions'])) {
-    return $information;
-  }
-
-  foreach ($information['theme suggestions'] as $data) {
-    list($theme, $hook) = $data;
+  // @see ctools_api_set_plugin_theme_variants()
+  foreach ($information['theme hooks'] as $data) {
+    list($variant, $hook) = $data;
 
     if (!isset($theme_registry[$hook])) {
       continue;
     }
 
-    $theme_path = $theme_registry[$hook]['theme path'];
-    // Imagine that our template located in:
-    // "themes/bartik/templates/ctools/content-types/example".
-    // Here we trim "themes/bartik/templates" and
-    // obtain "/ctools/content-types/example".
-    $assets_path = str_replace("$theme_path/templates", '', $theme_registry[$hook]['path']);
-
-    // Then we generate paths for assets:
+    // Generate paths for assets:
     // - "themes/bartik/css/ctools/content-types/example/example--default.css";
     // - "themes/bartik/js/ctools/content-types/example/example--default.js";
     foreach (['css', 'js'] as $asset) {
-      $information[$asset][] = str_replace('_', '-', "$theme_path/$asset$assets_path/{$information['machine_name']}--$theme.$asset");
+      $information[$asset][] = str_replace(
+        ['_', 'templates'],
+        ['-', $asset],
+        "{$theme_registry[$hook]['path']}/{$information['machine_name']}--$variant.$asset"
+      );
     }
   }
 
   return $information;
-}
-
-function ctools_api_to_camel_case($argument) {
-  if (!is_array($argument)) {
-    $argument = explode('_', $argument);
-  }
-
-  return lcfirst(implode(array_map('ucfirst', $argument)));
-}
-
-function ctools_api_to_underscore($argument) {
-  return strtolower(preg_replace('/(?<=\w)(?=[A-Z])/', '_$1', $argument));
-}
-
-/**
- * Implements hook_ctools_plugin_directory().
- */
-function ctools_api_ctools_plugin_directory($owner, $plugin_type) {
-  return "plugins/$owner/$plugin_type";
 }
 
 /**
@@ -168,17 +196,12 @@ function ctools_api_ctools_plugin_directory($owner, $plugin_type) {
 function ctools_api_menu() {
   $routes = [];
 
-  foreach ([
-    'get_fid_by_uri' => [
-      'access arguments' => ['access content'],
-    ],
-  ] as $callback => $definition) {
-    $routes['ctools_api/' . $callback] = $definition + array(
-      'type' => MENU_CALLBACK,
-      'file' => 'includes/ctools_api.menu.inc',
-      'page callback' => "_ctools_api_$callback",
-    );
-  }
+  $routes['ctools_api/get_fid_by_uri'] = [
+    'type' => MENU_CALLBACK,
+    'file' => 'includes/ctools_api.pages.inc',
+    'page callback' => '_ctools_api_get_fid_by_uri',
+    'access arguments' => ['access content'],
+  ];
 
   return $routes;
 }
@@ -189,11 +212,9 @@ function ctools_api_menu() {
 function ctools_api_theme(array $existing, $type, $theme, $path) {
   $suggestions = [];
 
-  foreach (['content_types', 'styles'] as $type) {
-    $suggestions["ctools__$type"] = [
-      'render element' => 'elements',
-    ];
-  }
+  $suggestions['ctools'] = [
+    'render element' => 'elements',
+  ];
 
   return $suggestions;
 }
@@ -217,99 +238,8 @@ function ctools_api_form_alter(array &$form, array &$form_state, $form_id) {
 }
 
 /**
- * Replace all "_" and ":" by "-".
- *
- * @param string $string
- *   Input string.
- *
- * @return string
- *   Output string with replaced symbols.
+ * Implements hook_ctools_plugin_directory().
  */
-function _ctools_api_dashes($string) {
-  return str_replace(['_', ':'], '-', ctools_api_to_underscore($string));
-}
-
-/**
- * Build name for style plugin hook and check it availability.
- *
- * @param string $plugin_type
- *   The type of plugin.
- * @param string $renderer_type
- *   Renderer type (pane or region).
- * @param string $plugin_name
- *   Machine name of the plugin.
- * @param string $hook
- *   Pseudo hook name. Like "render_pane", "settings_form" etc.
- *
- * @return string
- *   Hook name or empty string if function does not exist.
- */
-function _ctools_api_callback($plugin_type, $renderer_type, $plugin_name, $hook) {
-  $func = "_ctools_api_{$plugin_type}_{$plugin_name}_{$renderer_type}_{$hook}";
-
-  return function_exists($func) ? $func : '';
-}
-
-/**
- * Generate theme suggestions for CTools content type.
- *
- * @param array $data
- *   Updated array of CTools content type definition.
- * @param string $plugin_type
- *   Plugin type machine name.
- * @param string $plugin_name
- *   Plugin machine name.
- */
-function _ctools_api_set_plugin_theme(array &$data, $plugin_type, $plugin_name) {
-  if (!isset($data['theme hooks']) || !is_array($data['theme hooks'])) {
-    $data['theme hooks'] = [];
-  }
-
-  $data['theme hooks']['default'] = t('Default');
-
-  // Create all theme suggestions.
-  foreach ($data['theme hooks'] as $hook => $title) {
-    $data['theme suggestions'][] = [$hook, _ctools_api_theme_suggestion($plugin_type, $plugin_name, $hook)];
-  }
-}
-
-/**
- * Build theme suggestion.
- *
- * @param string $plugin_type
- *   Plugin type machine name.
- * @param string $plugin_name
- *   Plugin machine name.
- * @param string $hook
- *   Theme hook.
- *
- * @return string
- *   Theme hook name.
- */
-function _ctools_api_theme_suggestion($plugin_type, $plugin_name, $hook) {
-  return ctools_api_to_underscore(implode('__', ['ctools', $plugin_type, $plugin_name, $hook]));
-}
-
-/**
- * Apply theme suggestion.
- *
- * @param string $plugin_type
- *   Plugin type machine name.
- * @param string $plugin_name
- *   Plugin machine name.
- * @param string $hook
- *   Theme hook.
- * @param array $variables
- *   An array of variables that will be passed to template.
- *
- * @throws \Exception
- *   When theme is not initialized.
- *
- * @return string
- *   HTML content.
- */
-function _ctools_api_apply_plugin_theme($plugin_type, $plugin_name, $hook, array $variables) {
-  return theme(_ctools_api_theme_suggestion($plugin_type, ctools_api_to_underscore($plugin_name), $hook), [
-    'content' => $variables,
-  ]);
+function ctools_api_ctools_plugin_directory($owner, $plugin_type) {
+  return "plugins/$owner/$plugin_type";
 }

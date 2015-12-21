@@ -4,12 +4,12 @@
  * CTools Plugin Interface.
  */
 
-namespace CTools\API;
+namespace CTools\Plugins;
 
 /**
  * Interface PluginInterface.
  *
- * @package CTools\API
+ * @package CTools\Plugins
  */
 interface PluginInterface {
 
@@ -28,10 +28,10 @@ interface PluginInterface {
    *   For "content_types":
    *   - 'category' => <string>,
    *   - 'top level' => <bool>,
-   *   - 'theme hooks' => <string[]>,
+   *   - 'theme variants' => <string[]>,
    *   - 'required context' => <\ctools_context>
    *   For "styles":
-   *   - 'theme hooks' => <string[]>,
+   *   - 'theme variants' => <string[]>,
    *   - 'renderers' => <string[]>,
    */
   public static function info();

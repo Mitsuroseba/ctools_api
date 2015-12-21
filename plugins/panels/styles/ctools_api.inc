@@ -15,8 +15,10 @@
  */
 function ctools_api_ctools_api_panels_styles(array $info) {
   return [
-    'title' => t('CTools API Style'),
-    'category' => t('CTools API'),
+    'title' => t('@module Style', [
+      '@module' => CTOOLS_API_MODULE_TITLE,
+    ]),
+    'category' => CTOOLS_API_MODULE_TITLE,
     // Custom key. Store all styles to not call this function twice.
     'styles' => ctools_api_get_plugins($info['type']),
     // Should return collection of children styles.

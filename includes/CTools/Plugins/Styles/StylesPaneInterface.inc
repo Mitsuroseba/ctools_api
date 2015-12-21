@@ -1,15 +1,15 @@
 <?php
 /**
  * @file
- * CTools API Styles Pane Interface.
+ * CTools Plugins Styles Pane Interface.
  */
 
-namespace CTools\API\Styles;
+namespace CTools\Plugins\Styles;
 
 /**
  * Interface StylesPaneInterface.
  *
- * @package CTools\API\Styles
+ * @package CTools\Plugins\Styles
  */
 interface StylesPaneInterface extends StylesInterface {
 

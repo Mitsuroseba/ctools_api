@@ -4,12 +4,12 @@
  * Abstraction for "Entity Reference" form element.
  */
 
-namespace CTools\API\ContentTypes\Form;
+namespace CTools\Form;
 
 /**
  * Trait EntityReference.
  *
- * @package CTools\API\ContentTypes\Form
+ * @package CTools\Form
  */
 trait EntityReference {
 

@@ -1,15 +1,15 @@
 <?php
 /**
  * @file
- * CTools API Content Types Collection Element.
+ * CTools Plugins Content Types Collection Element.
  */
 
-namespace CTools\API\ContentTypes\Form\Elements;
+namespace CTools\Form\Elements;
 
 /**
- * Class CollectionElement.
+ * Class Collection.
  *
- * @package CTools\API\ContentTypes\Form
+ * @package CTools\Form\Elements
  */
 class Collection {
 

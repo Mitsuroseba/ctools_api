@@ -1,7 +1,7 @@
 <?php
 /**
  * @file
- * API for CTools content types.
+ * API for CTools content types plugins.
  */
 
 /**
@@ -9,23 +9,25 @@
  *
  * @param array $information
  *   Basic plugin information.
- * @param \CTools\API\ContentTypes\ContentTypesInterface|string $object
- *   Plugin object (static).
- * @param string $type
+ * @param string $plugin_type
  *   Native plugin type.
+ * @param string[] $interfaces
+ *   Implemented interfaces.
+ * @param \CTools\Plugins\ContentTypes\ContentTypesInterface|string $object
+ *   Plugin object (static).
  *
  * @return array
  *   Updated plugin definition.
  */
-function ctools_api_content_types(array $information, $object, $type) {
-  $information['render callback'] = "_ctools_api_{$type}_base_render";
-  $information['edit form'] = "_ctools_api_{$type}_base_settings_form";
+function ctools_api_content_types(array $information, $plugin_type, array $interfaces, $object) {
+  $information['render callback'] = "_ctools_api_{$plugin_type}_base_render";
+  $information['edit form'] = "_ctools_api_{$plugin_type}_base_settings_form";
 
   if (!isset($information['category'])) {
-    $information['category'] = t('CTools API');
+    $information['category'] = CTOOLS_API_MODULE_TITLE;
   }
 
-  _ctools_api_set_plugin_theme($information, $type, $information['machine_name']);
+  ctools_api_set_plugin_theme_variants($information, $object);
 
   return $information;
 }
@@ -47,10 +49,6 @@ function _ctools_api_content_type_get_subtype($subtype, array $info = []) {
 
   if (isset($plugin['content types'][$subtype])) {
     $definition = $plugin['content types'][$subtype];
-
-    // @codingStandardsIgnoreStart
-    require_once $definition['location'];
-    // @codingStandardsIgnoreEnd
   }
 
   return $definition;
@@ -76,7 +74,7 @@ function _ctools_api_content_types_base_admin_info($content_type, array $conf, a
 }
 
 /**
- * Base render for CTools API content type.
+ * Base renderer for CTools content type plugin.
  *
  * @internal
  *
@@ -120,7 +118,9 @@ function _ctools_api_content_types_base_render($content_type, array $conf, array
       $processed[$content_type] = TRUE;
     }
 
-    $block->content = _ctools_api_apply_plugin_theme('content_types', $content_type, $conf['theme'], $conf);
+    $block->content = ctools_api_apply_theme($content_type, $conf['theme'], [
+      'content' => $conf,
+    ]);
   }
   else {
     $block->content = t('You must create at least one theme hook and template for output pane content.');
@@ -130,7 +130,7 @@ function _ctools_api_content_types_base_render($content_type, array $conf, array
 }
 
 /**
- * Base form for each CTools API content type.
+ * Base form for CTools content type plugin.
  *
  * @internal
  *
@@ -189,12 +189,12 @@ function _ctools_api_content_types_base_settings_form(array $form, array &$form_
     'theme' => [
       '#type' => 'select',
       '#title' => t('Theme variant'),
-      '#options' => $plugin['theme hooks'],
+      '#options' => $plugin['theme variants'],
       '#default_value' => 'default',
     ],
   ];
 
-  if (!empty($plugin['theme hooks'])) {
+  if (!empty($plugin['theme variants'])) {
     $items = array_merge($theme, $items);
   }
 
@@ -522,7 +522,7 @@ function _ctools_api_content_types_base_process_specific_elements_submit(array $
   }
 
   // Process collections.
-  // @see \CTools\API\ContentTypes\Form\Elements\Collection
+  // @see \CTools\Plugins\ContentTypes\Form\Elements\Collection
   if (isset($form['#subtype'], $form['#name']) && 'collection' === $form['#subtype'] && empty($once[$form['#name']])) {
     $items =& drupal_array_get_nested_value($form_state['values'], $form['#parents']);
 

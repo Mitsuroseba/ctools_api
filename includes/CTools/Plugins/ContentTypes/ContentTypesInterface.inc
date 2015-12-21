@@ -1,17 +1,17 @@
 <?php
 /**
  * @file
- * CTools API Content Types Interface.
+ * CTools Plugins Content Types Interface.
  */
 
-namespace CTools\API\ContentTypes;
+namespace CTools\Plugins\ContentTypes;
 
-use CTools\API\PluginInterface;
+use CTools\Plugins\PluginInterface;
 
 /**
  * Interface ContentTypesInterface.
  *
- * @package CTools\API\ContentTypes
+ * @package CTools\Plugins\ContentTypes
  */
 interface ContentTypesInterface extends PluginInterface {
 

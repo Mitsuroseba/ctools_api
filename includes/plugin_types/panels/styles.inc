@@ -1,7 +1,7 @@
 <?php
 /**
  * @file
- * API for Panels styles.
+ * API for Panels styles plugins.
  */
 
 /**
@@ -9,25 +9,25 @@
  *
  * @param array $information
  *   Basic plugin information.
- * @param \CTools\API\Styles\StylesInterface|string $object
- *   Plugin object (static).
- * @param string $type
+ * @param string $plugin_type
  *   Native plugin type.
+ * @param string[] $interfaces
+ *   Implemented interfaces.
+ * @param \CTools\Plugins\Styles\StylesInterface|string $object
+ *   Plugin object (static).
  *
  * @return array
  *   Updated plugin definition.
  */
-function ctools_api_styles(array $information, $object, $type) {
-  $implementations = class_implements($object);
-
+function ctools_api_styles(array $information, $plugin_type, array $interfaces, $object) {
   foreach (['pane', 'region'] as $renderer) {
-    if (isset($implementations['CTools\API\Styles\Styles' . ucfirst($renderer) . 'Interface'])) {
+    if (isset($interfaces['CTools\Plugins\Styles\Styles' . ucfirst($renderer) . 'Interface'])) {
       $prefix = 'pane' === $renderer ? "$renderer " : '';
 
-      $information['render ' . $renderer] = "_ctools_api_{$type}_base_render_$renderer";
-      $information[$prefix . 'settings form'] = "_ctools_api_{$type}_base_settings_form";
+      $information['render ' . $renderer] = "_ctools_api_{$plugin_type}_base_render_$renderer";
+      $information[$prefix . 'settings form'] = "_ctools_api_{$plugin_type}_base_settings_form";
 
-      _ctools_api_set_plugin_theme($information, $type, $information['machine_name']);
+      ctools_api_set_plugin_theme_variants($information, $object);
       break;
     }
   }
@@ -50,7 +50,7 @@ function theme__ctools_api_styles_base_render_region(array $variables) {
 
   $plugin['object']::preprocess($variables['display'], $settings, $variables);
 
-  return _ctools_api_apply_plugin_theme('styles', $plugin['name'], $settings['theme'], $variables);
+  return ctools_api_apply_theme($plugin['object'], $settings['theme'], $variables);
 }
 
 /**
@@ -62,11 +62,15 @@ function theme__ctools_api_styles_base_render_pane(array $variables) {
   $settings =& $variables['settings'];
   $content =& $variables['content'];
   $plugin = $variables['style'];
+  $parts = explode('\\', $variables['pane']->subtype);
 
   $content->title_overriden = !empty($content->title_heading);
   // Collect the CSS settings of panel into array that can be rendered by
   // "drupal_attributes()" function.
-  $content->attributes = [];
+  $content->attributes = [
+    // Add transformed vendor and object names to pane classes.
+    'class' => array_map('ctools_api_to_dashes', [reset($parts), end($parts)]),
+  ];
 
   foreach (['class', 'id'] as $prop) {
     $object_prop = "css_$prop";
@@ -77,10 +81,9 @@ function theme__ctools_api_styles_base_render_pane(array $variables) {
     }
   }
 
-  $content->attributes['class'][] = _ctools_api_dashes($variables['pane']->subtype);
   $plugin['object']::preprocess($content, $settings, $variables);
 
-  return _ctools_api_apply_plugin_theme('styles', $plugin['name'], $settings['theme'], $variables);
+  return ctools_api_apply_theme($plugin['object'], $settings['theme'], $variables);
 }
 
 /**
@@ -107,7 +110,7 @@ function _ctools_api_styles_base_settings_form($settings, $display, $pid, $type,
   $form['theme'] = [
     '#type' => 'select',
     '#title' => t('Choose theme'),
-    '#options' => $plugin['theme hooks'],
+    '#options' => $plugin['theme variants'],
     '#default_value' => 'default',
   ];
 
