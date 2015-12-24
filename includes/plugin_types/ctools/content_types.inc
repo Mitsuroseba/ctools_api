@@ -82,25 +82,34 @@ function _ctools_api_content_types_base_admin_info($content_type, array $conf, a
  *   Drupal block.
  */
 function _ctools_api_content_types_base_render($content_type, array $conf, array $args, \ctools_context $context = NULL) {
-  static $processed = [];
+  static $processed = [], $registry = [];
 
   $plugin = _ctools_api_content_type_get_subtype($content_type);
-  $plugin['object']::preprocess($conf, $args, $context);
 
   $block = new \stdClass();
   $block->title = $conf['override_title_text'];
   $block->delta = $content_type;
   $block->region = $block->module = 'ctools_api';
 
-  if (isset($conf['theme'])) {
+  if (isset($conf['theme']) && !empty($plugin)) {
+    $plugin['object']::preprocess($conf, $args, $context);
+
+    if (empty($registry)) {
+      $registry = theme_get_registry();
+    }
+
     if (!isset($processed[$content_type])) {
-      foreach ([
-        'css' => [],
-        'js' => ['scope' => 'footer'],
-      ] as $type => $options) {
-        if (isset($plugin[$type]) && is_array($plugin[$type])) {
-          foreach (array_map('file_exists', $plugin[$type]) as $file) {
-            call_user_func("drupal_add_$type", $file, $options);
+      foreach ($plugin['theme hooks'] as $hook) {
+        if (isset($registry[$hook])) {
+          foreach ([
+            'css' => [],
+            'js' => ['scope' => 'footer'],
+          ] as $asset => $options) {
+            $file = str_replace('templates', $asset, "{$registry[$hook]['path']}/{$registry[$hook]['template']}.$asset");
+
+            if (file_exists($file)) {
+              call_user_func("drupal_add_$asset", $file, $options);
+            }
           }
         }
       }
@@ -140,7 +149,6 @@ function _ctools_api_content_types_base_settings_form(array $form, array &$form_
 
   // Update "conf" with temporary values after AJAX call.
   if (!empty($form_state['ajax']) && !empty($form_state['input'])) {
-    // @todo
     $conf = array_merge($conf, $form_state['input']);
   }
 
@@ -149,6 +157,7 @@ function _ctools_api_content_types_base_settings_form(array $form, array &$form_
 
     if (isset($trigger['#operation'])) {
       $item =& drupal_array_get_nested_value($conf, array_slice($trigger['#parents'], 0, -2));
+      $form_state['executed'] = FALSE;
 
       switch ($trigger['#operation']) {
         // @code
@@ -160,7 +169,7 @@ function _ctools_api_content_types_base_settings_form(array $form, array &$form_
           break;
 
         // @code
-        // ['content', 'references', 'references', 2, 'operations', '_remove']
+        // ['multiple', 2, '_operations', '_remove']
         // @endcode
         case 'remove':
           // Remove all values from the collection item.
@@ -168,7 +177,7 @@ function _ctools_api_content_types_base_settings_form(array $form, array &$form_
           // Get all items in collection.
           $item =& drupal_array_get_nested_value($conf, array_slice($trigger['#parents'], 0, -3));
           // Remove empty values.
-          $item = array_filter($item);
+          $item = array_values(array_filter($item));
           break;
       }
     }
@@ -203,7 +212,7 @@ function _ctools_api_content_types_base_settings_form(array $form, array &$form_
     ]);
   }
 
-  $form += _ctools_api_content_types_base_settings_process_form($items, $form_state, $form_state['conf'], $plugin);
+  $form += _ctools_api_content_types_base_settings_process_form($items, $form_state, $conf, $plugin);
   // Store all parent elements.
   $form_state['#elements'] = array_keys($items);
 
@@ -454,6 +463,7 @@ function _ctools_api_content_types_base_settings_form_ajax(array $form, array &$
     $plugin['object']::$method($form, $form_state, $commands, $form_state['values']);
   }
 
+  $form = drupal_rebuild_form($form['#form_id'], $form_state, $form);
   array_unshift($commands, ajax_command_replace('#' . $form['#form_id'], drupal_render($form)));
 
   return [
@@ -483,7 +493,7 @@ function _ctools_api_content_types_base_settings_form_submit(array $form, array 
     _ctools_api_content_types_base_process_specific_elements_submit($form, $form_state);
 
     $plugin = _ctools_api_content_type_get_subtype($form_state['subtype_name'], $form_state['plugin']);
-    $plugin['object']::configurationFormSubmit($form, $form_state);
+    $plugin['object']::configurationFormSubmit($form, $form_state, $form_state['conf']);
   }
 }
 
@@ -519,7 +529,7 @@ function _ctools_api_content_types_base_process_specific_elements_submit(array $
 
     // Remove buttons.
     foreach ($items as &$item) {
-      unset($item['_remove'], $item['_add']);
+      unset($item['_operations'], $item['_add']);
     }
 
     // Remove empty items.
