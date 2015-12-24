@@ -46,7 +46,9 @@ interface ContentTypesInterface extends PluginInterface {
    *   Form elements implementation.
    * @param array $form_state
    *   Drupal form state.
+   * @param array $conf
+   *   Saved configuration values.
    */
-  public static function configurationFormSubmit(array &$form, array &$form_state);
+  public static function configurationFormSubmit(array &$form, array &$form_state, array &$conf);
 
 }
