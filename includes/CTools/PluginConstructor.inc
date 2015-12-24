@@ -11,7 +11,8 @@ namespace CTools;
  *
  * @method array info()
  * @method string name()
- * @method array dependencies()
+ * @method string[] dependencies()
+ * @method string[] themeVariants()
  *
  * @package CTools
  */
@@ -63,8 +64,7 @@ class PluginConstructor {
     $this
       ->validateDependencies()
       ->callTypeConstructor()
-      ->generateThemeHooks()
-      ->attachThemeAssets();
+      ->generateThemeHooks();
   }
 
   /**
@@ -107,6 +107,7 @@ class PluginConstructor {
       $disabled = array_diff_key($dependencies, array_filter(array_map('module_exists', $dependencies)));
 
       if (!empty($disabled)) {
+        // @todo Inform user directly about missing dependencies.
         throw new \RuntimeException(t('The following dependencies of "@title" content type are disabled or does not exists: "@modules".', [
           '@title' => $this->info['title'],
           '@modules' => implode('", "', $disabled),
@@ -138,43 +139,11 @@ class PluginConstructor {
    * Generate theme hooks.
    */
   private function generateThemeHooks() {
-    if (!isset($this->info['theme variants']) || !is_array($this->info['theme variants'])) {
-      $this->info['theme variants'] = [];
-    }
-
-    $this->info['theme variants']['default'] = t('Default');
+    $this->info['theme variants'] = array_merge(['default' => t('Default')], $this->themeVariants());
 
     // Create all theme suggestions.
     foreach ($this->info['theme variants'] as $variant => $title) {
       $this->info['theme hooks'][] = ctools_api_theme_hook($this->object, $variant);
-    }
-
-    return $this;
-  }
-
-  /**
-   * Attach CSS/JS to plugin definition for future autoloading.
-   */
-  private function attachThemeAssets() {
-    static $registry = [];
-
-    if (empty($this->info['theme hooks'])) {
-      return $this->info;
-    }
-
-    if (empty($registry)) {
-      $registry = theme_get_registry();
-    }
-
-    // @see ctools_api_set_plugin_theme_variants()
-    foreach ($this->info['theme hooks'] as $hook) {
-      if (isset($registry[$hook])) {
-        foreach (['css', 'js'] as $asset) {
-          $this->info[$asset][] = str_replace(
-            'templates', $asset, "{$registry[$hook]['path']}/{$registry[$hook]['template']}.$asset"
-          );
-        }
-      }
     }
 
     return $this;

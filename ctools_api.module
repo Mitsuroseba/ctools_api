@@ -54,13 +54,34 @@ function ctools_api_menu() {
  * Implements hook_theme().
  */
 function ctools_api_theme(array $existing, $type, $theme, $path) {
-  $suggestions = [];
+  $hooks = [];
 
-  $suggestions['ctools'] = [
+  $hooks['ctools'] = [
     'render element' => 'elements',
   ];
 
-  return $suggestions;
+  foreach (['content_types', 'styles'] as $plugin_type) {
+    foreach (ctools_api_get_plugins($plugin_type) as $plugin) {
+      foreach (drupal_system_listing('/\.tpl\.php$/', $plugin['plugin module path'], 'name', 0) as $template => $file) {
+        // Chop off the remaining extensions if there are any. $template
+        // already has the rightmost extension removed, but there might
+        // still be more, such as with .tpl.php, which still has .tpl in
+        // $template at this point.
+        $dot = strpos($template, '.');
+
+        if (FALSE !== $dot) {
+          $template = substr($template, 0, $dot);
+        }
+
+        $hooks[strtr($template, '-', '_')] = [
+          'path' => dirname($file->uri),
+          'template' => $template,
+        ];
+      }
+    }
+  }
+
+  return $hooks;
 }
 
 /**
