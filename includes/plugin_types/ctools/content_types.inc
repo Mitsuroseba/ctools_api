@@ -5,7 +5,9 @@
  */
 
 /**
- * Collect all plugins of "content_types" type.
+ * Constructor for "content_type" plugins provided by CTools.
+ *
+ * @see \CTools\PluginConstructor::callTypeConstructor()
  *
  * @param array $information
  *   Basic plugin information.
@@ -15,9 +17,6 @@
  *   Implemented interfaces.
  */
 function ctools_api_content_types(array &$information, $plugin_type, array $interfaces) {
-  $information['render callback'] = "_ctools_api_{$plugin_type}_base_render";
-  $information['edit form'] = "_ctools_api_{$plugin_type}_base_settings_form";
-
   if (!isset($information['category'])) {
     $information['category'] = CTOOLS_API_MODULE_TITLE;
   }
@@ -46,6 +45,19 @@ function _ctools_api_content_type_get_subtype($subtype, array $info = []) {
 }
 
 /**
+ * Set admin title from a child plugin.
+ *
+ * @param \CTools\Plugins\ContentTypes\ContentTypesInterface $object
+ *   Plugin definition.
+ *
+ * @return string
+ *   Human readable of content type.
+ */
+function ctools_api_ctools_api_content_type_admin_title($object) {
+  return class_exists($object) && method_exists($object, 'name') ? $object::name() : '';
+}
+
+/**
  * Base render for admin preview.
  *
  * @internal
@@ -60,8 +72,8 @@ function _ctools_api_content_type_get_subtype($subtype, array $info = []) {
  * @return \stdClass
  *   Pane block.
  */
-function _ctools_api_content_types_base_admin_info($content_type, array $conf, array $context) {
-  return call_user_func_array('_ctools_api_content_types_base_render', func_get_args());
+function ctools_api_ctools_api_content_type_admin_info($content_type, array $conf, array $context) {
+  return call_user_func_array('ctools_api_ctools_api_content_type_render', func_get_args());
 }
 
 /**
@@ -81,7 +93,7 @@ function _ctools_api_content_types_base_admin_info($content_type, array $conf, a
  * @return \stdClass
  *   Drupal block.
  */
-function _ctools_api_content_types_base_render($content_type, array $conf, array $args, \ctools_context $context = NULL) {
+function ctools_api_ctools_api_content_type_render($content_type, array $conf, array $args, \ctools_context $context = NULL) {
   static $processed = [], $registry = [];
 
   $plugin = _ctools_api_content_type_get_subtype($content_type);
@@ -100,6 +112,7 @@ function _ctools_api_content_types_base_render($content_type, array $conf, array
 
     if (!isset($processed[$content_type])) {
       foreach ($plugin['theme hooks'] as $hook) {
+        // @todo Fix assets loading.
         if (isset($registry[$hook])) {
           foreach ([
             'css' => [],
@@ -142,10 +155,14 @@ function _ctools_api_content_types_base_render($content_type, array $conf, array
  * @return array
  *   Updated form.
  */
-function _ctools_api_content_types_base_settings_form(array $form, array &$form_state) {
+function ctools_api_ctools_api_content_type_edit_form(array $form, array &$form_state) {
   $plugin = _ctools_api_content_type_get_subtype($form_state['subtype_name'], $form_state['plugin']);
   $conf = $form_state['conf'];
   $items = [];
+
+  if (empty($plugin)) {
+    return $form;
+  }
 
   // Update "conf" with temporary values after AJAX call.
   if (!empty($form_state['ajax']) && !empty($form_state['input'])) {
@@ -155,6 +172,7 @@ function _ctools_api_content_types_base_settings_form(array $form, array &$form_
   if (isset($form_state['triggering_element'])) {
     $trigger = $form_state['triggering_element'];
 
+    // Process collections.
     if (isset($trigger['#operation'])) {
       $item =& drupal_array_get_nested_value($conf, array_slice($trigger['#parents'], 0, -2));
       $form_state['executed'] = FALSE;
@@ -178,6 +196,12 @@ function _ctools_api_content_types_base_settings_form(array $form, array &$form_
           $item =& drupal_array_get_nested_value($conf, array_slice($trigger['#parents'], 0, -3));
           // Remove empty values.
           $item = array_values(array_filter($item));
+
+          // If the last row was removed then init an empty.
+          // @see \CTools\Form\Elements::
+          if (empty($item)) {
+            $item = NULL;
+          }
           break;
       }
     }
@@ -231,7 +255,7 @@ function _ctools_api_content_types_base_settings_form(array $form, array &$form_
   }
 
   // Add form callbacks.
-  // @see _ctools_api_content_types_base_settings_form()
+  // @see ctools_api_ctools_api_content_type_edit_form_form()
   foreach (['submit'] as $type) {
     $form["#$type"][] = __FUNCTION__ . '_' . $type;
   }
@@ -273,7 +297,7 @@ function _ctools_api_content_types_base_settings_process_form(array $items, arra
 
       $element['#ajax'] = [
         'wrapper' => $form_state['build_info']['form_id'],
-        // @see _ctools_api_content_types_base_settings_form_ajax()
+        // @see ctools_api_ctools_api_content_type_edit_form_ajax()
         'callback' => $form_state['build_info']['form_id'] . '_ajax',
       ];
     }
@@ -424,9 +448,7 @@ function _ctools_api_content_types_base_settings_process_form(array $items, arra
         $conf[$name] = $conf[$name]['value'];
       }
 
-      if ('!default' !== $conf[$name]) {
-        $element['#default_value'] = $conf[$name];
-      }
+      $element['#default_value'] = $conf[$name];
     }
 
     // Make our processing recursive.
@@ -453,7 +475,7 @@ function _ctools_api_content_types_base_settings_process_form(array $items, arra
  * @return array
  *   Form after rebuild.
  */
-function _ctools_api_content_types_base_settings_form_ajax(array $form, array &$form_state) {
+function ctools_api_ctools_api_content_type_edit_form_ajax(array $form, array &$form_state) {
   $element = $form_state['triggering_element'];
   $plugin = _ctools_api_content_type_get_subtype($form_state['subtype_name'], $form_state['plugin']);
   $method = ctools_api_to_camel_case('ajax_callback_' . end($element['#parents']));
@@ -482,7 +504,7 @@ function _ctools_api_content_types_base_settings_form_ajax(array $form, array &$
  * @param array $form_state
  *   Drupal form state.
  */
-function _ctools_api_content_types_base_settings_form_submit(array $form, array &$form_state) {
+function ctools_api_ctools_api_content_type_edit_form_submit(array $form, array &$form_state) {
   if (!empty($form_state['#elements'])) {
     foreach ($form_state['#elements'] as $field_name) {
       if (isset($form_state['values'][$field_name])) {
