@@ -36,7 +36,8 @@
       $context.find('.horizontal-tabs').once(module, function() {
         var $tabs = $('<ul class="clearfix" />'),
             $fieldsets = $(this).children('fieldset'),
-            hash = location.hash.substr(1).split(':');
+            hash = location.hash.substr(1).split(':'),
+            $firstTab = [];
 
         $fieldsets.each(function() {
           var $fieldset = $(this),
@@ -57,13 +58,16 @@
 
         // Read active tabs from location hash.
         if (3 === hash.length && 'horizontal-tab' === hash[0]) {
-          $('#' + hash[1]).find('li').eq(hash[2]).click();
+          $firstTab = $('#' + hash[1]).find('li').eq(hash[2]);
         }
-        else {
-          // Open the first tab. The "addClass()" method cannot be
-          // used, because on click we operate with a location hash.
-          $tabs.children().first().click();
+
+        if (!$firstTab.length) {
+          $firstTab = $tabs.children().first();
         }
+
+        // Open the first tab. The "addClass()" method cannot be
+        // used, because on click we operate with a location hash.
+        $firstTab.click();
       });
     }
   };
