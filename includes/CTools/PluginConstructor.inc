@@ -103,7 +103,7 @@ class PluginConstructor {
     $dependencies = $this->dependencies();
 
     // Process content type dependencies.
-    if (!empty($dependencies)) {
+    if (!empty($dependencies) && is_array($dependencies)) {
       $disabled = array_diff_key($dependencies, array_filter(array_map('module_exists', $dependencies)));
 
       if (!empty($disabled)) {
@@ -139,7 +139,13 @@ class PluginConstructor {
    * Generate theme hooks.
    */
   private function generateThemeHooks() {
-    $this->info['theme variants'] = array_merge(['default' => t('Default')], $this->themeVariants());
+    $variants = $this->themeVariants();
+    // Provide default variant initially.
+    $this->info['theme variants'] = ['default' => t('Default')];
+
+    if (is_array($variants)) {
+      $this->info['theme variants'] += $variants;
+    }
 
     // Create all theme suggestions.
     foreach ($this->info['theme variants'] as $variant => $title) {
