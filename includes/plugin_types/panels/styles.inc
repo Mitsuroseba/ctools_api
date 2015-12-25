@@ -5,7 +5,9 @@
  */
 
 /**
- * Collect all plugins of "styles" type.
+ * Constructor for "styles" plugins provided by Panels.
+ *
+ * @see \CTools\PluginConstructor::callTypeConstructor()
  *
  * @param array $information
  *   Basic plugin information.
