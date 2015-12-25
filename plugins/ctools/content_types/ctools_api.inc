@@ -23,7 +23,6 @@ function ctools_api_ctools_api_ctools_content_types(array $info) {
       '@module' => CTOOLS_API_MODULE_TITLE,
     ]),
     'category' => CTOOLS_API_MODULE_TITLE,
-    'admin info' => '_ctools_api_content_types_base_admin_info',
     'content types' => ctools_api_get_plugins($info['type']),
   ];
 }
