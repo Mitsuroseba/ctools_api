@@ -89,7 +89,7 @@ function ctools_api_theme(array $existing, $type, $theme, $path) {
  */
 function ctools_api_form_alter(array &$form, array &$form_state, $form_id) {
   switch ($form_id) {
-    case '_ctools_api_content_types_base_settings_form':
+    case 'ctools_api_ctools_api_content_type_edit_form':
       // Wrap form in a container for replacing the markup after AJAX calls.
       $form['#prefix'] = '<div id="' . $form_id . '">';
       $form['#suffix'] = '</div>';
