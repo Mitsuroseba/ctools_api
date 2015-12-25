@@ -135,7 +135,7 @@ trait EntityReference {
   /**
    * Element AJAX callback.
    *
-   * @see _ctools_api_content_types_base_settings_form_ajax()
+   * @see ctools_api_ctools_api_content_type_edit_form_ajax()
    */
   public static function ajaxCallbackEntityType(array &$form, array &$form_state, array &$commands, array $conf) {
     $element =& self::cleanReferenceValueWhenAjaxTriggeredOn('entity_type', $form, $form_state);
@@ -150,7 +150,7 @@ trait EntityReference {
   /**
    * Element AJAX callback.
    *
-   * @see _ctools_api_content_types_base_settings_form_ajax()
+   * @see ctools_api_ctools_api_content_type_edit_form_ajax()
    */
   public static function ajaxCallbackBundles(array &$form, array &$form_state, array &$commands, array $conf) {
     self::cleanReferenceValueWhenAjaxTriggeredOn('bundles', $form, $form_state);
