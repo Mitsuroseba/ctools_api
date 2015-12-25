@@ -61,7 +61,7 @@ function ctools_api_search_plugins() {
  *   Plugin definitions.
  */
 function ctools_api_get_plugins($plugin_type) {
-  // Transform "content_types" to "ContentType", for example.
+  // Transform "content_types" to "ContentTypes", for example.
   $namespace = ucfirst(ctools_api_to_camel_case($plugin_type));
   $plugins = [];
 
