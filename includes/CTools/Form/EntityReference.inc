@@ -2,6 +2,8 @@
 /**
  * @file
  * Abstraction for "Entity Reference" form element.
+ *
+ * @todo Think about easiest implementation of this feature for end users.
  */
 
 namespace CTools\Form;
