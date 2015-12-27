@@ -108,5 +108,12 @@ function ctools_api_form_alter(array &$form, array &$form_state, $form_id) {
  * Implements hook_ctools_plugin_directory().
  */
 function ctools_api_ctools_plugin_directory($owner, $plugin_type) {
-  return "plugins/$owner/$plugin_type";
+  return "api/$owner/$plugin_type";
+}
+
+/**
+ * Implements hook_ctools_api_plugins_directory().
+ */
+function ctools_api_ctools_api_plugins_directory() {
+  return 'plugins';
 }
