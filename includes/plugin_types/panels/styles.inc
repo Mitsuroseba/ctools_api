@@ -5,24 +5,17 @@
  */
 
 /**
- * Constructor for "styles" plugins provided by Panels.
+ * {@inheritdoc}
  *
  * @see \CTools\PluginConstructor::callTypeConstructor()
- *
- * @param array $information
- *   Basic plugin information.
- * @param string $plugin_type
- *   Native plugin type.
- * @param string[] $interfaces
- *   Implemented interfaces.
  */
-function ctools_api_styles(array &$information, $plugin_type, array $interfaces) {
+function ctools_api_styles(array &$information, array $interfaces) {
   foreach (['pane', 'region'] as $renderer) {
     if (isset($interfaces['CTools\Plugins\Styles\Styles' . ucfirst($renderer) . 'Interface'])) {
       $prefix = 'pane' === $renderer ? "$renderer " : '';
 
-      $information['render ' . $renderer] = "_ctools_api_{$plugin_type}_base_render_$renderer";
-      $information[$prefix . 'settings form'] = "_ctools_api_{$plugin_type}_base_settings_form";
+      $information['render ' . $renderer] = __FUNCTION__ . "_base_render_$renderer";
+      $information[$prefix . 'settings form'] = __FUNCTION__ . "_base_settings_form";
       break;
     }
   }
@@ -37,7 +30,7 @@ function ctools_api_styles(array &$information, $plugin_type, array $interfaces)
  *
  * @see ctools_api_styles()
  */
-function theme__ctools_api_styles_base_render_region(array $variables) {
+function theme_ctools_api_styles_base_render_region(array $variables) {
   $settings =& $variables['settings'];
   $plugin = $variables['style'];
 
@@ -51,7 +44,7 @@ function theme__ctools_api_styles_base_render_region(array $variables) {
  *
  * @see ctools_api_styles()
  */
-function theme__ctools_api_styles_base_render_pane(array $variables) {
+function theme_ctools_api_styles_base_render_pane(array $variables) {
   $settings =& $variables['settings'];
   $content =& $variables['content'];
   $plugin = $variables['style'];
@@ -96,7 +89,7 @@ function theme__ctools_api_styles_base_render_pane(array $variables) {
  * @return array
  *   Drupal form definition.
  */
-function _ctools_api_styles_base_settings_form($settings, $display, $pid, $type, $form_state) {
+function ctools_api_styles_base_settings_form($settings, $display, $pid, $type, $form_state) {
   $plugin = $form_state['style'];
   $form = [];
 
