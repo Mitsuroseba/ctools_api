@@ -30,13 +30,18 @@ function ctools_api_search_plugins() {
           $object = str_replace('/', '\\', trim(str_replace([$sources, '.inc'], '', $file->uri), '/'));
 
           if (class_exists($object)) {
-            $file->object = $object;
-            $file->sources = $sources;
-            $file->implements = class_implements($object);
-            $file->module_name = $module_name;
-            $file->module_path = $module_path;
+            $reflection = new \ReflectionClass($object);
 
-            $plugins[] = $file;
+            if ($reflection->isInstantiable()) {
+              $file->object = $object;
+              $file->sources = $sources;
+              $file->abstract = $reflection->isAbstract();
+              $file->implements = $reflection->getInterfaceNames();
+              $file->module_name = $module_name;
+              $file->module_path = $module_path;
+
+              $plugins[] = $file;
+            }
           }
         }
       }
@@ -71,7 +76,7 @@ function ctools_api_get_plugins($plugin_type) {
     if (isset($plugin->implements[implode('\\', ['CTools', 'Plugins', $namespace, $namespace . 'Interface'])])) {
       try {
         $plugins[$plugin->object] = array_merge((new \CTools\PluginConstructor($plugin->object, $plugin->implements, $plugin_type))->getInfo(), [
-          'name' => $plugin->name,
+          'name' => "ctools_api:$plugin->object",
           'path' => dirname($plugin->uri),
           'file' => $plugin->filename,
           'object' => $plugin->object,
@@ -107,6 +112,71 @@ function ctools_api_register_autoloader_path($path = '') {
   }
 
   return $paths;
+}
+
+/**
+ * Extend CTools plugin definition to provide child plugins.
+ *
+ * @see ctools_plugin_load_includes()
+ * @see ctools_plugin_process()
+ *
+ * @param string $type
+ *   Original plugin type (e.g. "access", "styles", "content_types");
+ *
+ * @return array
+ *   ['children'] - all children plugin definitions;
+ *   ['get children'] - callback for return all children;
+ *   ['get child'] - callback for return selected child.
+ */
+function ctools_api_type_definition_get($type) {
+  return [
+    // Custom key. Store all styles to not call this function twice.
+    'children' => ctools_api_get_plugins($type),
+    // Should return collection of children styles.
+    'get children' => __FUNCTION__ . '_children',
+    // Should return single definition from the children collection.
+    'get child' => __FUNCTION__ . '_child',
+  ];
+}
+
+/**
+ * Collect all child plugins.
+ *
+ * @see ctools_get_plugins()
+ *
+ * @param array $plugin
+ *   Plugin definition information.
+ * @param string $parent
+ *   Machine name of the origin plugin (ctools_api).
+ *
+ * @return array[]
+ *   Style plugin definitions.
+ */
+function ctools_api_type_definition_get_children(array $plugin, $parent) {
+  foreach ($plugin['children'] as $name => $info) {
+    // Rename keys in array according to CTools documentation.
+    $plugin['children']["$parent:$name"] = $info;
+    unset($plugin['children'][$name]);
+  }
+
+  return $plugin['children'];
+}
+
+/**
+ * Chose single plugin from children.
+ *
+ * @param array $plugin
+ *   Plugin definition information.
+ * @param string $parent
+ *   Machine name of the origin plugin (ctools_api).
+ * @param string $child
+ *   Machine name of the child plugin.
+ *
+ * @return array
+ *   Style plugin definition.
+ */
+function ctools_api_type_definition_get_child(array $plugin, $parent, $child) {
+  return $plugin['children'][$child];
 }
 
 /**
@@ -153,6 +223,11 @@ function ctools_api_to_dashes($argument) {
 
 /**
  * Build theme hook.
+ *
+ * @param string $plugin_name
+ *   Plugin namespace.
+ * @param string $variant
+ *   Theme variant.
  *
  * @return string
  *   Theme hook name.
