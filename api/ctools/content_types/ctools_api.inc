@@ -7,9 +7,6 @@
 /**
  * Implements <MODULE>_<FILENAME>_ctools_content_types().
  *
- * Generate an array with information about
- * all plugins of the "ContentTypes" type.
- *
  * NOTE! This type of plugins cannot be implemented in unified
  * way as, for example, "styles", because child plugins does not
  * allowed in type definition.
