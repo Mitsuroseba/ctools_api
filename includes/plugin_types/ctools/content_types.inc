@@ -5,18 +5,11 @@
  */
 
 /**
- * Constructor for "content_type" plugins provided by CTools.
+ * {@inheritdoc}
  *
  * @see \CTools\PluginConstructor::callTypeConstructor()
- *
- * @param array $information
- *   Basic plugin information.
- * @param string $plugin_type
- *   Native plugin type.
- * @param string[] $interfaces
- *   Implemented interfaces.
  */
-function ctools_api_content_types(array &$information, $plugin_type, array $interfaces) {
+function ctools_api_content_types(array &$information, array $interfaces) {
   if (!isset($information['category'])) {
     $information['category'] = CTOOLS_API_MODULE_TITLE;
   }
