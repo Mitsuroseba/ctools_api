@@ -6,14 +6,14 @@
 
 namespace CTools\Plugins\Styles;
 
-use CTools\Plugins\PluginInterface;
+use CTools\Plugins\TemplatablePluginInterface;
 
 /**
  * Interface ContentTypesInterface.
  *
  * @package CTools\Plugins\ContentTypes
  */
-interface StylesInterface extends PluginInterface {
+interface StylesInterface extends TemplatablePluginInterface {
 
   /**
    * Configuration form for pane.

@@ -6,14 +6,15 @@
 
 namespace CTools\Plugins\ContentTypes;
 
-use CTools\Plugins\PluginInterface;
+use CTools\Plugins\TemplatablePluginInterface;
+use CTools\Plugins\ConfigurablePluginInterface;
 
 /**
  * Interface ContentTypesInterface.
  *
  * @package CTools\Plugins\ContentTypes
  */
-interface ContentTypesInterface extends PluginInterface {
+interface ContentTypesInterface extends TemplatablePluginInterface, ConfigurablePluginInterface {
 
   /**
    * Preprocess variables before passing them to theme engine.
@@ -26,29 +27,5 @@ interface ContentTypesInterface extends PluginInterface {
    *   Content type context.
    */
   public static function preprocess(array &$variables, array &$arguments, \ctools_context $context = NULL);
-
-  /**
-   * Configuration form.
-   *
-   * @param array $form
-   *   Form elements implementation.
-   * @param array $form_state
-   *   Drupal form state.
-   * @param array $conf
-   *   Saved configuration values.
-   */
-  public static function configurationForm(array &$form, array &$form_state, array $conf);
-
-  /**
-   * Submission callback for configuration form.
-   *
-   * @param array $form
-   *   Form elements implementation.
-   * @param array $form_state
-   *   Drupal form state.
-   * @param array $conf
-   *   Saved configuration values.
-   */
-  public static function configurationFormSubmit(array &$form, array &$form_state, array &$conf);
 
 }

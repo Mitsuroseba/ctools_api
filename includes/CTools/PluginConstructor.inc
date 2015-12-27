@@ -130,7 +130,9 @@ class PluginConstructor {
       ]));
     }
 
-    $constructor($this->info, $this->type, $this->implements);
+    /* @param array $information Basic plugin information. */
+    /* @param string[] $interfaces Implemented interfaces */
+    $constructor($this->info, $this->implements);
 
     return $this;
   }
@@ -139,17 +141,19 @@ class PluginConstructor {
    * Generate theme hooks.
    */
   private function generateThemeHooks() {
-    $variants = $this->themeVariants();
-    // Provide default variant initially.
-    $this->info['theme variants'] = ['default' => t('Default')];
+    if (isset($this->implements['CTools\Plugins\TemplatablePluginInterface'])) {
+      $variants = $this->themeVariants();
+      // Provide default variant initially.
+      $this->info['theme variants'] = ['default' => t('Default')];
 
-    if (is_array($variants)) {
-      $this->info['theme variants'] += $variants;
-    }
+      if (is_array($variants)) {
+        $this->info['theme variants'] += $variants;
+      }
 
-    // Create all theme suggestions.
-    foreach ($this->info['theme variants'] as $variant => $title) {
-      $this->info['theme hooks'][] = ctools_api_theme_hook($this->object, $variant);
+      // Create all theme suggestions.
+      foreach ($this->info['theme variants'] as $variant => $title) {
+        $this->info['theme hooks'][] = ctools_api_theme_hook($this->object, $variant);
+      }
     }
 
     return $this;
