@@ -36,7 +36,7 @@ function ctools_api_search_plugins() {
               $file->object = $object;
               $file->sources = $sources;
               $file->abstract = $reflection->isAbstract();
-              $file->implements = $reflection->getInterfaceNames();
+              $file->implements = drupal_map_assoc($reflection->getInterfaceNames());
               $file->module_name = $module_name;
               $file->module_path = $module_path;
 
