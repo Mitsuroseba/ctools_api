@@ -58,9 +58,14 @@ class Collection {
     // Walk through the collection items.
     foreach ($values as $i => $value) {
       $items = $process($i, $value);
+      $children = element_children($items);
+
+      if (empty($children)) {
+        throw new \RuntimeException(t('Callback for collection must return an associative array of form items.'));
+      }
 
       // Remove titles from elements and set them to table cells.
-      foreach (element_children($items) as $td) {
+      foreach ($children as $td) {
         $element['#header'][$td] = isset($items[$td]['#title']) ? $items[$td]['#title'] : '';
         unset($items[$td]['#title']);
       }

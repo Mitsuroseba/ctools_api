@@ -14,6 +14,8 @@ define('CTOOLS_API_MODULE_TITLE', 'CTools API');
 require_once 'includes/ctools_api.common.inc';
 // Include API for "styles" plugins provided by Panels.
 require_once 'includes/plugin_types/panels/styles.inc';
+// Include API for "access" plugins provided by CTools.
+require_once 'includes/plugin_types/ctools/access.inc';
 // Include API for "content_types" plugins provided by CTools.
 require_once 'includes/plugin_types/ctools/content_types.inc';
 
