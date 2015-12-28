@@ -53,6 +53,24 @@ function ctools_api_menu() {
 }
 
 /**
+ * Implements hook_menu_alter().
+ */
+function ctools_api_menu_alter(array &$items) {
+  // The ctools_access_ajax_add() - is a callback for this route. It expects
+  // two arguments: $fragment and $name. The last one - should be the name of
+  // access plugin. All work fine until we didn't started to operate with
+  // namespaces with a "\" symbol as separator. Drupal split a path by this
+  // symbol and we get wrong plugin name and additional arguments.
+  //
+  // @example
+  // ctools_api:CTools\Plugins\Access\HTTPStatusCode -> ctools_api:CTools
+  //
+  // @see ctools_context_menu()
+  // @see ctools_access_ajax_add()
+  $items['ctools/context/ajax/access/add']['page callback'] = 'ctools_api_access_ajax_add';
+}
+
+/**
  * Implements hook_theme().
  */
 function ctools_api_theme(array $existing, $type, $theme, $path) {
@@ -116,4 +134,14 @@ function ctools_api_ctools_plugin_directory($owner, $plugin_type) {
  */
 function ctools_api_ctools_api_plugins_directory() {
   return 'plugins';
+}
+
+/**
+ * Menu callback.
+ *
+ * @see ctools_api_menu_alter()
+ */
+function ctools_api_access_ajax_add() {
+  $arguments = func_get_args();
+  ctools_access_ajax_add(array_shift($arguments), implode('\\', $arguments));
 }
