@@ -7,6 +7,8 @@
 /**
  * Menu callback.
  *
+ * @internal
+ *
  * @see ctools_api_menu()
  */
 function _ctools_api_get_fid_by_uri() {
