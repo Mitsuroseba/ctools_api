@@ -21,6 +21,15 @@ class Collection {
    * @var string
    */
   private $name = '';
+  /**
+   * Button names. Texts can be changed before creation.
+   *
+   * @var string[]
+   */
+  public static $buttonTexts = [
+    'remove' => 'Remove',
+    'add' => 'Add new item',
+  ];
 
   /**
    * Helper for creating a fields collection.
@@ -38,6 +47,8 @@ class Collection {
    */
   public function __construct(array $parents, array &$form, array &$form_state, array &$conf, callable $process) {
     $this->setName($parents);
+    // Pass button texts to translate interface.
+    array_map('t', static::$buttonTexts);
     // Check that we already have saved values for our collection.
     $values = drupal_array_get_nested_value($conf, $parents);
     $element = [
@@ -80,13 +91,13 @@ class Collection {
         ],
       ];
 
-      $items['_operations']["_remove"] = [
+      $items['_operations']['_remove'] = [
         '#ajax' => TRUE,
         // This value MUST BE UNIQUE for every row. Otherwise we always will
         // have the button from last row in $form_state['triggering_element'].
         '#name' => "$this->name[$i]",
         '#type' => 'button',
-        '#value' => t('Remove'),
+        '#value' => static::$buttonTexts['remove'],
         '#operation' => 'remove',
         '#limit_validation_errors' => [],
       ];
@@ -94,16 +105,16 @@ class Collection {
       $element[] = $items;
     }
 
-    // Create the last row with all empty cells, except the last one.
-    $element['_last'] = array_fill(0, count($element['#header']) - 1, '');
-    // Add the "Add item" button to the last cell of the last row.
     $element['_last']['_add'] = [
       '#ajax' => TRUE,
       '#name' => $this->name,
       '#type' => 'button',
-      '#value' => t('Add item'),
+      '#value' => static::$buttonTexts['add'],
       '#operation' => 'add',
       '#limit_validation_errors' => [],
+      '#cell' => [
+        'colspan' => count($element['#header']),
+      ],
     ];
 
     // Attach a collection, that was generated, to our form.
