@@ -6,8 +6,9 @@
  * @author Sergii Bondarenko <sb@firstvector.org>
  */
 
+define('CTOOLS_API_MODULE_DIR', __DIR__);
 // Easiest way to obtain path to location directory.
-define('CTOOLS_API_MODULE_PATH', trim(str_replace(DRUPAL_ROOT, '/', __DIR__), '/'));
+define('CTOOLS_API_MODULE_PATH', trim(str_replace(DRUPAL_ROOT, '/', CTOOLS_API_MODULE_DIR), '/'));
 define('CTOOLS_API_MODULE_TITLE', 'CTools API');
 
 // Include auxiliary functionality.
@@ -22,11 +23,11 @@ require_once 'includes/plugin_types/ctools/content_types.inc';
 ctools_api_register_autoloader_path(CTOOLS_API_MODULE_PATH . '/includes');
 
 spl_autoload_register(function ($namespace) {
-  $namespace = str_replace('\\', '/', $namespace);
+  $relative = str_replace('\\', '/', $namespace);
 
   // @codingStandardsIgnoreStart
-  foreach (ctools_api_register_autoloader_path() as $path) {
-    $file = "$path/$namespace.inc";
+  foreach (ctools_api_register_autoloader_path() as $dir) {
+    $file = "$dir/$relative.inc";
 
     if (file_exists($file)) {
       require_once $file;
@@ -74,30 +75,37 @@ function ctools_api_menu_alter(array &$items) {
  * Implements hook_theme().
  */
 function ctools_api_theme(array $existing, $type, $theme, $path) {
+  $modules = [];
   $hooks = [];
 
   $hooks['ctools'] = [
     'render element' => 'elements',
   ];
 
-  foreach (['content_types', 'styles'] as $plugin_type) {
-    foreach (ctools_api_get_plugins($plugin_type) as $plugin) {
-      foreach (drupal_system_listing('/\.tpl\.php$/', $plugin['plugin module path'], 'name', 0) as $template => $file) {
-        // Chop off the remaining extensions if there are any. $template
-        // already has the rightmost extension removed, but there might
-        // still be more, such as with .tpl.php, which still has .tpl in
-        // $template at this point.
-        $dot = strpos($template, '.');
+  // Collect unique paths of modules to reduce number of directories scanning.
+  foreach (ctools_api_search_plugins() as $plugin) {
+    // Add new path only if it was not added earlier and plugin templatable.
+    if (!isset($modules[$plugin->module_path]) && isset($plugin->implements['CTools\Plugins\TemplatablePluginInterface'])) {
+      $modules[$plugin->module_path] = $plugin->module_path;
+    }
+  }
 
-        if (FALSE !== $dot) {
-          $template = substr($template, 0, $dot);
-        }
+  foreach ($modules as $module_path) {
+    foreach (file_scan_directory($module_path, '/\.tpl\.php$/') as $path => $file) {
+      // Chop off the remaining extensions if there are any. $template
+      // already has the rightmost extension removed, but there might
+      // still be more, such as with .tpl.php, which still has .tpl in
+      // $template at this point.
+      $dot = strpos($file->filename, '.');
 
-        $hooks[strtr($template, '-', '_')] = [
-          'path' => dirname($file->uri),
-          'template' => $template,
-        ];
+      if (FALSE !== $dot) {
+        $file->filename = substr($file->filename, 0, $dot);
       }
+
+      $hooks[strtr($file->filename, '-', '_')] = [
+        'path' => dirname($path),
+        'template' => $file->filename,
+      ];
     }
   }
 
@@ -108,16 +116,66 @@ function ctools_api_theme(array $existing, $type, $theme, $path) {
  * Implements hook_form_alter().
  */
 function ctools_api_form_alter(array &$form, array &$form_state, $form_id) {
-  switch ($form_id) {
-    case 'ctools_api_ctools_api_content_type_edit_form':
-      // Wrap form in a container for replacing the markup after AJAX calls.
-      $form['#prefix'] = '<div id="' . $form_id . '">';
-      $form['#suffix'] = '</div>';
+  $nested_required = FALSE;
 
-      // Add class to buttons to be able to distinguish them.
-      foreach (['return', 'cancel'] as $button) {
-        $form['buttons'][$button]['#attributes']['class'][] = $button;
+  switch ($form_id) {
+    // All type of plugins have very different implementation. This module
+    // tries to fix this. The "access" and "style" plugin types required
+    // their settings to be in a "settings" sub-array of $form_state['conf'].
+    case 'panels_edit_style_settings_form':
+    case 'panels_edit_configure_access_test_form':
+      $nested_required = TRUE;
+      // NO BREAK HERE! Everything should be as is.
+
+    case 'ctools_api_ctools_api_content_type_edit_form':
+      // Need to extract our form elements to the top level to be able to use
+      // unified form implementation and AJAX callbacks. Otherwise, #parents
+      // for every element will be wrong.
+      if ($nested_required && isset($form['settings'])) {
+        $form = array_merge($form['settings'], $form);
+        $form_state['#elements'] = element_children($form['settings']);
+        // Here we mark that our form requires values to be on
+        // a $form_state['values']['settings'] level. This value
+        // will be used in a submit callback.
+        //
+        // @see ctools_api_plugin_base_configuration_form_submit()
+        $form_state['#nested_required'] = TRUE;
+        // Remove duplicate form elements.
+        unset($form['settings']);
       }
+
+      // Be able to update form after changing the context.
+      if (isset($form['context'])) {
+        $form['context'] = array_merge($form['context'], [
+          // Needed to be empty for triggering AJAX callback on changing.
+          '#default_value' => isset($form_state['conf']['context']) ? $form_state['conf']['context'] : 'empty',
+          // @see ctools_api_plugin_base_configuration_form_process()
+          '#ajax' => [
+            // Wrapper is unnecessary because CTools require to response
+            // full modal window using ctools_modal_form_render() function.
+            'callback' => 'ctools_api_plugin_base_configuration_form_ajax',
+          ],
+        ]);
+      }
+
+      // Set button classes.
+      foreach ([
+        // CSS class => [<STYLES>, <ACCESS>, <CONTENT_TYPES>].
+        'return' => [['submit'], ['save'], ['buttons', 'return']],
+        'cancel' => [['cancel_style'], ['remove'], ['buttons', 'cancel']],
+      ] as $class => $elements) {
+        foreach ($elements as $parents) {
+          $button =& drupal_array_get_nested_value($form, $parents);
+
+          if (NULL !== $button) {
+            $button['#attributes']['class'] = ['button', $class];
+          }
+        }
+      }
+
+      // This callback need to be first in a queue for execution because
+      // it forms a correct structure of $form_state['values'] array.
+      array_unshift($form['#submit'], 'ctools_api_plugin_base_configuration_form_submit');
       break;
   }
 }
@@ -133,6 +191,8 @@ function ctools_api_ctools_plugin_directory($owner, $plugin_type) {
  * Implements hook_ctools_api_plugins_directory().
  */
 function ctools_api_ctools_api_plugins_directory() {
+  // This module provide an unified API for CTools plugins and implements
+  // couple useful plugins as example.
   return 'plugins';
 }
 

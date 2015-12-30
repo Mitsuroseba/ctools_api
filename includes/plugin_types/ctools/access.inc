@@ -47,8 +47,11 @@ function ctools_api_access_base_callback($conf, $context, array $plugin) {
  * @see ctools_access_ajax_edit_item()
  */
 function ctools_api_access_base_settings_form(array $form, array &$form_state, $conf) {
+  $form_state['conf'] = (array) $conf;
   $items = [];
-  $form_state['plugin']['object']::configurationForm($items, $form_state, (array) $conf);
+
+  ctools_api_plugin_base_configuration_form($items, $form_state);
+
   $form['settings'] += $items;
 
   return $form;
@@ -62,6 +65,8 @@ function ctools_api_access_base_settings_form(array $form, array &$form_state, $
 function ctools_api_access_base_settings_form_submit(array $form, array &$form_state) {
   $conf = [];
 
+  // Ternary operator could not be used because only values could
+  // be passed by reference.
   if (isset($form_state['values']['settings'])) {
     $conf =& $form_state['values']['settings'];
   }

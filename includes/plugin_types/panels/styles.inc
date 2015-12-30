@@ -26,36 +26,35 @@ function ctools_api_styles(array &$information, array $interfaces) {
 }
 
 /**
- * Implements theme_HOOK().
+ * {@inheritdoc}
  *
  * @see ctools_api_styles()
  */
 function theme_ctools_api_styles_base_render_region(array $variables) {
-  $settings =& $variables['settings'];
   $plugin = $variables['style'];
+  $conf =& $variables['settings'];
 
-  $plugin['object']::preprocess($variables['display'], $settings, $variables);
+  $plugin['object']::preprocess($variables['display'], $conf, $variables);
 
-  return ctools_api_apply_theme($plugin['object'], $settings['theme'], $variables);
+  return ctools_api_apply_theme($plugin['object'], $conf, $plugin, $variables);
 }
 
 /**
- * Implements theme_HOOK().
+ * {@inheritdoc}
  *
  * @see ctools_api_styles()
  */
 function theme_ctools_api_styles_base_render_pane(array $variables) {
-  $settings =& $variables['settings'];
   $content =& $variables['content'];
   $plugin = $variables['style'];
+  $conf =& $variables['settings'];
   $parts = explode('\\', $variables['pane']->subtype);
 
   $content->title_overriden = !empty($content->title_heading);
   // Collect the CSS settings of panel into array that can be rendered by
   // "drupal_attributes()" function.
   $content->attributes = [
-    // Add transformed vendor and object names to pane classes.
-    'class' => array_map('ctools_api_to_dashes', [reset($parts), end($parts)]),
+    'class' => [],
   ];
 
   foreach (['class', 'id'] as $prop) {
@@ -67,56 +66,26 @@ function theme_ctools_api_styles_base_render_pane(array $variables) {
     }
   }
 
-  $plugin['object']::preprocess($content, $settings, $variables);
+  // Add transformed vendor and object names to pane classes.
+  $content->attributes['class'] = array_merge($content->attributes['class'], array_map('ctools_api_to_dashes', array_unique([
+    reset($parts),
+    end($parts),
+  ])));
 
-  return ctools_api_apply_theme($plugin['object'], $settings['theme'], $variables);
+  $plugin['object']::preprocess($content, $conf, $variables);
+
+  return ctools_api_apply_theme($plugin['object'], $conf, $plugin, $variables);
 }
 
 /**
- * Main settings form for a style plugin.
+ * {@inheritdoc}
  *
- * @param array $settings
- *   Saved, by user, settings.
- * @param \panels_display $display
- *   Panels display object.
- * @param int $pid
- *   Panel ID.
- * @param string $type
- *   The type of a panel.
- * @param array $form_state
- *   Drupal form state.
- *
- * @return array
- *   Drupal form definition.
+ * @see panels_edit_style_settings_form()
  */
-function ctools_api_styles_base_settings_form($settings, $display, $pid, $type, $form_state) {
-  $plugin = $form_state['style'];
-  $form = [];
+function ctools_api_styles_base_settings_form($settings, $display, $pid, $type, array &$form_state) {
+  $items = [];
 
-  $form['theme'] = [
-    '#type' => 'select',
-    '#title' => t('Choose theme'),
-    '#options' => $plugin['theme variants'],
-    '#default_value' => 'default',
-  ];
+  ctools_api_plugin_base_configuration_form($items, $form_state);
 
-  // @codingStandardsIgnoreStart
-  require_once $plugin['location'];
-  // @codingStandardsIgnoreEnd
-
-  $plugin['object']::configurationForm($form, $form_state, $settings, $display, $pid);
-
-  // @todo Set values recursive.
-  // Process default values and field types.
-  foreach ($form as $field_name => $definition) {
-    if (isset($settings[$field_name])) {
-      $form[$field_name]['#default_value'] = $settings[$field_name];
-    }
-
-    if (!isset($definition['#type'])) {
-      $form[$field_name]['#type'] = 'textfield';
-    }
-  }
-
-  return $form;
+  return $items;
 }
