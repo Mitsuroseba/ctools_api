@@ -1,16 +1,7 @@
 @import "mixins", "variables";
 
 .ctools-modal-content {
-  border-radius: $border-radius!important;
-
-//  .close {
-//    display: inline-block;
-//    vertical-align: top;
-//    height: 100%;
-//    width: 60px;
-//    padding: 0;
-//    text-indent: -99999px;
-//  }
+  border-radius: $border-radius !important;
 }
 
 .modal-content, .modal-title {
@@ -224,14 +215,13 @@
   .dependent-options {
     padding-left: 0 !important;
   }
-  .form-actions {
-    input {
-      color: #fff !important;
-      box-shadow: none !important;
-      text-shadow: 0 -1px 0 rgba(0, 0, 0, .25) !important;
-      border-color: rgba(0, 0, 0, .1) rgba(0, 0, 0, .1) rgba(0, 0, 0, .25);
-    }
-    .return {
+  .button {
+    color: #fff !important;
+    box-shadow: none !important;
+    text-shadow: 0 -1px 0 rgba(0, 0, 0, .25) !important;
+    border-color: rgba(0, 0, 0, .1) rgba(0, 0, 0, .1) rgba(0, 0, 0, .25);
+
+    &.return {
       background: #006dcc;
       @include vendor-values(background, linear-gradient(to bottom, #0088cc, #0044cc), webkit, moz, ms, o);
       background: -webkit-gradient(linear, 0 0, 0 100%, from(#0088cc), to(#0044cc));
@@ -241,7 +231,7 @@
         background: #0044cc;
       }
     }
-    .cancel {
+    &.cancel {
       background: #da4f49;
       @include vendor-values(background, linear-gradient(to bottom, #ee5f5b, #bd362f), webkit, moz, ms, o);
       background: -webkit-gradient(linear, 0 0, 0 100%, from(#ee5f5b), to(#bd362f));
