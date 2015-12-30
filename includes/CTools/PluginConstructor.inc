@@ -152,7 +152,7 @@ class PluginConstructor {
 
       // Create all theme suggestions.
       foreach ($this->info['theme variants'] as $variant => $title) {
-        $this->info['theme hooks'][] = ctools_api_theme_hook($this->object, $variant);
+        $this->info['theme hooks'][$variant] = ctools_api_theme_hook($this->object, $variant);
       }
     }
 
