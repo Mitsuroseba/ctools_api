@@ -56,7 +56,7 @@ class HTTPStatusCode implements AccessInterface {
   /**
    * {@inheritdoc}
    */
-  public static function configurationForm(array &$form, array &$form_state, array $conf) {
+  public static function configurationForm(array &$form, array &$form_state, array &$conf) {
     $form['available_codes'] = [
       '#type' => 'checkboxes',
       '#title' => t('Choose HTTP status code for which accesses available'),
@@ -70,6 +70,13 @@ class HTTPStatusCode implements AccessInterface {
    */
   public static function configurationFormSubmit(array &$form, array &$form_state, array &$conf) {
     $conf['available_codes'] = array_filter($conf['available_codes']);
+  }
+
+  /**
+   * {@inheritdoc}
+   */
+  public static function configurationFormElementCallback(array &$form, array &$form_state, array &$conf, array &$commands, array $element) {
+
   }
 
 }
