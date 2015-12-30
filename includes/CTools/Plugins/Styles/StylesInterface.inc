@@ -7,28 +7,13 @@
 namespace CTools\Plugins\Styles;
 
 use CTools\Plugins\TemplatablePluginInterface;
+use CTools\Plugins\ConfigurablePluginInterface;
 
 /**
- * Interface ContentTypesInterface.
+ * Interface StylesInterface.
  *
- * @package CTools\Plugins\ContentTypes
+ * @package CTools\Plugins\Styles
  */
-interface StylesInterface extends TemplatablePluginInterface {
-
-  /**
-   * Configuration form for pane.
-   *
-   * @param array $form
-   *   Form elements implementation.
-   * @param array $form_state
-   *   Drupal form state.
-   * @param array $conf
-   *   Saved configuration values.
-   * @param \panels_display $display
-   *   Panels display.
-   * @param string $id
-   *   Panel ID or region name (depends on renderer).
-   */
-  public static function configurationForm(array &$form, array &$form_state, array $conf, \panels_display $display, $id);
+interface StylesInterface extends TemplatablePluginInterface, ConfigurablePluginInterface {
 
 }
