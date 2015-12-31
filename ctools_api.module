@@ -68,7 +68,7 @@ function ctools_api_menu_alter(array &$items) {
   //
   // @see ctools_context_menu()
   // @see ctools_access_ajax_add()
-  $items['ctools/context/ajax/access/add']['page callback'] = 'ctools_api_access_ajax_add';
+  $items['ctools/context/ajax/access/add']['page callback'] = '_ctools_api_access_ajax_add';
 }
 
 /**
@@ -199,9 +199,11 @@ function ctools_api_ctools_api_plugins_directory() {
 /**
  * Menu callback.
  *
+ * @internal
+ *
  * @see ctools_api_menu_alter()
  */
-function ctools_api_access_ajax_add() {
+function _ctools_api_access_ajax_add() {
   $arguments = func_get_args();
   ctools_access_ajax_add(array_shift($arguments), implode('\\', $arguments));
 }
