@@ -25,6 +25,8 @@ ctools_api_register_autoloader_path(CTOOLS_API_MODULE_PATH . '/includes');
 spl_autoload_register(function ($namespace) {
   $relative = str_replace('\\', '/', $namespace);
 
+  // @todo Collect paths as associative array where key - is namespace
+  // and value - relative, to Drupal root, path to file with source code.
   // @codingStandardsIgnoreStart
   foreach (ctools_api_register_autoloader_path() as $dir) {
     $file = "$dir/$relative.inc";
