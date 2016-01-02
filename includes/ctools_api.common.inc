@@ -227,6 +227,19 @@ function ctools_api_to_dashes($argument) {
 }
 
 /**
+ * Generate "name" HTML attribute for form fields.
+ *
+ * @param string[] $parents
+ *   Element parents.
+ *
+ * @return string
+ *   Generated attribute.
+ */
+function ctools_api_html_name_from_array(array $parents) {
+  return array_shift($parents) . (count($parents) > 1 ? '[' . implode('][', $parents) . ']' : '');
+}
+
+/**
  * Build theme hook.
  *
  * @param string $plugin_name
@@ -638,7 +651,9 @@ function ctools_api_plugin_base_configuration_form_ajax(array $form, array &$for
  *   Drupal form state.
  */
 function ctools_api_plugin_base_configuration_form_submit(array $form, array &$form_state) {
-  if (!empty($form_state['#elements'])) {
+  $plugin = ctools_api_form_state_get_plugin($form_state);
+
+  if (!empty($form_state['#elements']) && isset($plugin['object'])) {
     ctools_api_plugin_base_configuration_form_process_specific_elements_submit($form, $form_state);
 
     foreach ($form_state['#elements'] as $field_name) {
@@ -647,7 +662,6 @@ function ctools_api_plugin_base_configuration_form_submit(array $form, array &$f
       }
     }
 
-    $plugin = ctools_api_form_state_get_plugin($form_state);
     $plugin['object']::configurationFormSubmit($form, $form_state, $form_state['conf']);
 
     // @see ctools_api_form_alter()
