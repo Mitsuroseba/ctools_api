@@ -9,7 +9,7 @@
  *
  * @see \CTools\PluginConstructor::callTypeConstructor()
  */
-function ctools_api_access_plugin_constructor(array &$information, array $interfaces) {
+function ctools_api_access(array &$information, array $interfaces) {
   foreach (['summary', 'callback', 'settings form', 'settings form submit'] as $property) {
     $information[$property] = __FUNCTION__ . '_base_' . str_replace(' ', '_', $property);
   }

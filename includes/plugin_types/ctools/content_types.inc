@@ -9,7 +9,7 @@
  *
  * @see \CTools\PluginConstructor::callTypeConstructor()
  */
-function ctools_api_content_types_plugin_constructor(array &$information, array $interfaces) {
+function ctools_api_content_types(array &$information, array $interfaces) {
   if (!isset($information['category'])) {
     $information['category'] = CTOOLS_API_MODULE_TITLE;
   }

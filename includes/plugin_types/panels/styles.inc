@@ -9,7 +9,7 @@
  *
  * @see \CTools\PluginConstructor::callTypeConstructor()
  */
-function ctools_api_styles_plugin_constructor(array &$information, array $interfaces) {
+function ctools_api_styles(array &$information, array $interfaces) {
   foreach (['pane', 'region'] as $renderer) {
     if (isset($interfaces['CTools\Plugins\Styles\Styles' . ucfirst($renderer) . 'Interface'])) {
       $prefix = 'pane' === $renderer ? "$renderer " : '';
