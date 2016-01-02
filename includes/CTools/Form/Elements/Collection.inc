@@ -16,12 +16,6 @@ class Collection {
   const TYPE = 'collection';
 
   /**
-   * The "name" HTML attribute for collection.
-   *
-   * @var string
-   */
-  private $name = '';
-  /**
    * Button names. Texts can be changed before creation.
    *
    * @var string[]
@@ -46,9 +40,9 @@ class Collection {
    *   Callback for processing each item in a collection.
    */
   public function __construct(array $parents, array &$form, array &$form_state, array &$conf, callable $process) {
-    $this->setName($parents);
     // Pass button texts to translate interface.
     array_map('t', static::$buttonTexts);
+    $name = ctools_api_html_name_from_array($parents);
     // Check that we already have saved values for our collection.
     $values = drupal_array_get_nested_value($conf, $parents);
     $element = [
@@ -75,6 +69,11 @@ class Collection {
         throw new \RuntimeException(t('Callback for collection must return an associative array of form items.'));
       }
 
+      // Populate properties.
+      foreach (element_properties($items) as $prop) {
+        $element[$prop] = isset($element[$prop]) ? array_merge($element[$prop], $items[$prop]) : $items[$prop];
+      }
+
       // Remove titles from elements and set them to table cells.
       foreach ($children as $td) {
         $element['#header'][$td] = isset($items[$td]['#title']) ? $items[$td]['#title'] : '';
@@ -95,7 +94,7 @@ class Collection {
         '#ajax' => TRUE,
         // This value MUST BE UNIQUE for every row. Otherwise we always will
         // have the button from last row in $form_state['triggering_element'].
-        '#name' => "$this->name[$i]",
+        '#name' => $name . "[$i]",
         '#type' => 'button',
         '#value' => static::$buttonTexts['remove'],
         '#operation' => 'remove',
@@ -107,7 +106,7 @@ class Collection {
 
     $element['_last']['_add'] = [
       '#ajax' => TRUE,
-      '#name' => $this->name,
+      '#name' => $name,
       '#type' => 'button',
       '#value' => static::$buttonTexts['add'],
       '#operation' => 'add',
@@ -121,16 +120,6 @@ class Collection {
     drupal_array_set_nested_value($form, $parents, $element);
     // Update form values to able to add new elements to collection.
     drupal_array_set_nested_value($conf, $parents, $values);
-  }
-
-  /**
-   * Generate "name" HTML attribute for input.
-   *
-   * @param string[] $parents
-   *   Element parents.
-   */
-  private function setName(array $parents) {
-    $this->name = array_shift($parents) . (count($parents) > 1 ? '[' . implode('][', $parents) . ']' : '');
   }
 
 }
