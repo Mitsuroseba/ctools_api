@@ -19,7 +19,6 @@
           imce.setMessage(Drupal.t('You have not selected any file.'), 'error');
         }
         else {
-          console.log(manager);
           manager.process(manager.schemeName + '://' + imce.fileGet(filename).relpath, triggeringElement, function() {
             // The "close" is a native method of "Window" object. It must be
             // called directly and must not be passed to function as parameter.
@@ -35,6 +34,10 @@
       });
     };
 
-    window.open('/' + fileManager + '/' + manager.schemeName + '?app=nomatter|imceload@' + manager.fileManagerID, '', 'width=760,height=560,resizable=1');
+    window.open(
+      '/' + fileManager + '/' + manager.schemeName + '?app=nomatter|imceload@' + manager.fileManagerID,
+      '',
+      'width=760,height=560,resizable=1'
+    );
   });
 })(jQuery, 'imce');

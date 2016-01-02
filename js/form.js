@@ -5,8 +5,13 @@ var CToolsAPI = Object.create(null);
   'use strict';
 
   CToolsAPI.moduleName = moduleName;
+  /**
+   * Convert file URI to ID.
+   *
+   * @param {String} uri
+   * @param {Function} callback
+   */
   CToolsAPI.getFIDByURI = function(uri, callback) {
-    console.log('/' + this.moduleName + '/get_fid_by_uri', uri);
     $.get('/' + this.moduleName + '/get_fid_by_uri', {uri: uri}, function(fid) {
       if (fid > 0) {
         callback(fid);
