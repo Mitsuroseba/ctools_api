@@ -387,7 +387,10 @@ function ctools_api_plugin_base_configuration_form(array &$form, array &$form_st
     foreach (['css', 'js'] as $extension) {
       // Attach "form.css" and "form.js" provided by
       // CTools API for customizing configuration form.
-      $form['#attached'][$extension][] = CTOOLS_API_MODULE_PATH . "/$extension/form.$extension";
+      $form['#attached'][$extension][] = [
+        'data' => CTOOLS_API_MODULE_PATH . "/$extension/form.$extension",
+        'weight' => -10000,
+      ];
 
       // Attach CSS and/or JS files that located near the "*.inc" file
       // with a content type definition (if exists).
@@ -418,6 +421,7 @@ function ctools_api_plugin_base_configuration_form(array &$form, array &$form_st
  *   Processed items.
  */
 function ctools_api_plugin_base_configuration_form_process(array $items, array &$form_state, array $conf, array $plugin) {
+  global $language;
   static $once = [];
 
   foreach ($items as $name => &$element) {
@@ -497,12 +501,27 @@ function ctools_api_plugin_base_configuration_form_process(array $items, array &
         break;
 
       case 'managed_file':
+        // Allow to affect on image preview.
+        $element += [
+          '#preview' => TRUE,
+        ];
+
         if (!isset($element['#upload_location'])) {
           $element['#upload_location'] = file_default_scheme() . '://';
         }
 
         // Use one of file browsers.
         if (isset($element['#widget'])) {
+          $stream_wrapper_scheme = file_uri_scheme($element['#upload_location']);
+          /* @var \DrupalLocalStreamWrapper $stream_wrapper */
+          $stream_wrapper = file_stream_wrapper_get_instance_by_scheme($stream_wrapper_scheme);
+
+          if (FALSE === $stream_wrapper) {
+            break;
+          }
+
+          $stream_url = $stream_wrapper->getDirectoryPath();
+
           foreach ([
             'imce' => [
               '#module' => 'imce',
@@ -520,55 +539,64 @@ function ctools_api_plugin_base_configuration_form_process(array $items, array &
               continue;
             }
 
-            if (empty($once["$type:$widget"])) {
-              if (empty($once[$widget]) && module_exists($data['#module'])) {
-                list($func, $arguments) = $data['#function'];
-                $once[$widget] = trim(call_user_func_array($func, $arguments), '/');
-              }
+            if (!isset($once[$widget]) && module_exists($data['#module'])) {
+              list($func, $arguments) = $data['#function'];
+              $path = trim(call_user_func_array($func, $arguments), '/');
 
               // In this case the module will not exist.
-              if (empty($once[$widget])) {
+              if (empty($path)) {
                 continue;
               }
-              else {
-                $once[$widget] .= '/' . $data['#subfolder'];
-              }
 
-              drupal_add_js(sprintf('%s/js/file.js', CTOOLS_API_MODULE_PATH));
-
-              $element['#attached']['js'] = [
-                sprintf("%s/$widget.js", $once[$widget]),
-                sprintf("%s/js/$widget.js", CTOOLS_API_MODULE_PATH),
-              ];
-
-              $stream_wrapper_scheme = file_uri_scheme($element['#upload_location']);
-              /* @var \DrupalLocalStreamWrapper $stream_wrapper */
-              $stream_wrapper = file_stream_wrapper_get_instance_by_scheme($stream_wrapper_scheme);
-
-              drupal_add_js([
-                "ctools_api_$widget" => [
-                  'scheme' => $stream_wrapper_scheme,
-                  'basePath' => DRUPAL_ROOT . '/' . $once[$widget],
-                  'language' => $GLOBALS['language']->language,
-                  'schemeUrl' => $stream_wrapper->getDirectoryPath(),
-                ],
-              ], 'setting');
-
-              $once["$type:$widget"] = TRUE;
+              $once[$widget] = $path . '/' . $data['#subfolder'];
             }
 
-            $element['#attributes']['class'][] = "$widget-files-browser";
+            $settings = [
+              'basePath' => DRUPAL_ROOT . '/' . $once[$widget],
+              'location' => $element['#upload_location'],
+              'language' => $language->language,
+              'schemeURL' => $stream_url,
+              'schemeName' => $stream_wrapper_scheme,
+            ];
+
+            $settings_key = md5(serialize($settings));
+
+            // Pass only unique settings.
+            if (!isset($once[$settings_key])) {
+              $element['#attached']['js'] = [
+                // Widget library.
+                [
+                  'data' => $once[$widget] . "/$widget.js",
+                  'weight' => -1002,
+                ],
+                // CTools API File Manager.
+                [
+                  'data' => CTOOLS_API_MODULE_PATH . '/js/file.js',
+                  'weight' => -1001,
+                ],
+                // Implementation of one of file managers.
+                [
+                  'data' => CTOOLS_API_MODULE_PATH . "/js/file.$widget.js",
+                  'weight' => -1000,
+                ],
+                // Widget-related settings.
+                [
+                  'type' => 'setting',
+                  'data' => [$settings_key => $settings],
+                ],
+              ];
+
+              $once[$settings_key] = TRUE;
+            }
+
+            // @todo Unable to pass "data-*" or another one attribute.
+            $element['#attributes']['class'][] = "$widget-file-manager $settings_key";
           }
         }
 
-        if (empty($once['image_module_enabled'])) {
+        if (!isset($once['image_module_enabled'])) {
           $once['image_module_enabled'] = module_exists('image');
         }
-
-        // Allow to affect on image preview.
-        $element += [
-          '#preview' => TRUE,
-        ];
 
         if ($once['image_module_enabled'] && $element['#preview']) {
           // @see ctools_api_field_managed_file_pre_render().
@@ -682,6 +710,7 @@ function ctools_api_plugin_base_configuration_form_submit(array $form, array &$f
  *   Drupal form state.
  */
 function ctools_api_plugin_base_configuration_form_process_specific_elements_submit(array $form, array &$form_state) {
+  global $user;
   static $once = [];
 
   // Process the files.
@@ -690,7 +719,14 @@ function ctools_api_plugin_base_configuration_form_process_specific_elements_sub
       $file = file_load($form['#value']['fid']);
       $file->status = FILE_STATUS_PERMANENT;
 
-      file_usage_add(file_save($file), 'ctools_api', 'user', $GLOBALS['user']->uid);
+      file_usage_add(file_save($file), 'ctools_api', 'user', $user->uid);
+    }
+    else {
+      $file = file_load(drupal_array_get_nested_value($form_state['conf'], $form['#parents']));
+
+      if (FALSE !== $file) {
+        file_delete($file, TRUE);
+      }
     }
 
     $once[$form['#name']] = TRUE;
