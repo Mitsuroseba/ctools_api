@@ -8,7 +8,6 @@
  * @var array $content
  */
 ?>
-<?php print render($content['image']); ?>
 <?php foreach ($content['references'] as $item): ?>
   <p><?php print $item['reference']['entity_label']; ?></p>
 <?php endforeach; ?>
