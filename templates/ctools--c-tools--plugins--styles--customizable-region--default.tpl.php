@@ -9,8 +9,14 @@
  * @var string[] $panes
  */
 ?>
-<<?php print $settings['tag']; ?><?php print drupal_attributes($settings['attributes']); ?>>
+<?php if (!empty($settings['tag'])): ?>
+  <<?php print $settings['tag']; ?><?php print drupal_attributes($settings['attributes']); ?>>
+<?php endif; ?>
+
   <?php foreach ($panes as $pid => $content): ?>
     <?php print $content; ?>
   <?php endforeach; ?>
-</<?php print $settings['tag']; ?>>
+
+<?php if (!empty($settings['tag'])): ?>
+  </<?php print $settings['tag']; ?>>
+<?php endif; ?>

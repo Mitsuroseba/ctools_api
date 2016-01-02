@@ -9,12 +9,26 @@
  * @var array $settings
  */
 ?>
-<<?php print $content->tag; ?><?php print drupal_attributes($content->attributes); ?>>
+<?php if (!empty($content->tag)): ?>
+  <<?php print $content->tag; ?><?php print drupal_attributes($content->attributes); ?>>
+<?php endif; ?>
+
   <?php foreach ($settings['info'] as $name => $info): ?>
     <?php if (!empty($content->$name)): ?>
-      <<?php print $info['tag']; ?><?php print drupal_attributes($info['attributes']); ?>>
+
+      <?php if (!empty($info['tag'])): ?>
+        <<?php print $info['tag']; ?><?php print drupal_attributes($info['attributes']); ?>>
+      <?php endif; ?>
+
         <?php print $content->$name; ?>
-      </<?php print $info['tag']; ?>>
+
+      <?php if (!empty($info['tag'])): ?>
+        </<?php print $info['tag']; ?>>
+      <?php endif; ?>
+
     <?php endif; ?>
   <?php endforeach; ?>
-</<?php print $content->tag; ?>>
+
+<?php if (!empty($content->tag)): ?>
+  </<?php print $content->tag; ?>>
+<?php endif; ?>

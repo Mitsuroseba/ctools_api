@@ -84,14 +84,24 @@ abstract class Customizable implements StylesInterface {
    *   HTML tag names.
    */
   protected static function formItem(array $parents, array &$form, array &$form_state, array $conf, array $tags) {
-    drupal_array_set_nested_value($form, array_merge($parents, ['tag']), [
+    $tag_parents = array_merge($parents, ['tag']);
+    $tag_parents_string = ctools_api_html_name_from_array($tag_parents);
+
+    drupal_array_set_nested_value($form, $tag_parents, [
       '#type' => 'select',
       '#title' => t('HTML tag'),
       '#options' => drupal_map_assoc($tags),
+      '#empty_option' => t('- None -'),
     ]);
 
-    new Form\Elements\Collection(array_merge($parents, ['attributes']), $form, $form_state, $conf, function () {
-      $item = [];
+    new Form\Elements\Collection(array_merge($parents, ['attributes']), $form, $form_state, $conf, function () use ($tag_parents_string) {
+      $item = [
+        '#states' => [
+          'invisible' => [
+            ":input[name='$tag_parents_string']" => ['value' => ''],
+          ],
+        ],
+      ];
 
       $item['attribute'] = [
         '#type' => 'textfield',
