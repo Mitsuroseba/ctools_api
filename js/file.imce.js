@@ -1,12 +1,8 @@
-;(function($, browser) {
+(function($, fileManager) {
   'use strict';
 
-  // Context element, inside of the method, will be the "Browse files" link.
-  var module = new CToolsAPI(browser).addImplementation(function() {
-    var settings = module.settings,
-        context = this;
-
-    window[settings.browserId] = function(imce_window) {
+  CToolsAPI.FileManager.implementation(fileManager, function(manager, triggeringElement) {
+    window[manager.fileManagerID] = function(imce_window) {
       var imce = imce_window.imce;
 
       // In case, when IMCE call this method, the "filename" parameter will
@@ -23,7 +19,8 @@
           imce.setMessage(Drupal.t('You have not selected any file.'), 'error');
         }
         else {
-          module.getFidByUri(settings.scheme + '://' + imce.fileGet(filename).relpath, context, function() {
+          console.log(manager);
+          manager.process(manager.schemeName + '://' + imce.fileGet(filename).relpath, triggeringElement, function() {
             // The "close" is a native method of "Window" object. It must be
             // called directly and must not be passed to function as parameter.
             imce_window.close();
@@ -38,6 +35,6 @@
       });
     };
 
-    window.open('/' + browser + '/' + settings.scheme + '?app=nomatter|imceload@' + settings.browserId, '', 'width=760,height=560,resizable=1');
+    window.open('/' + fileManager + '/' + manager.schemeName + '?app=nomatter|imceload@' + manager.fileManagerID, '', 'width=760,height=560,resizable=1');
   });
 })(jQuery, 'imce');

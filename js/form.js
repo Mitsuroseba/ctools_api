@@ -1,30 +1,44 @@
-;(function($, module) {
+// Create simple object without prototype.
+var CToolsAPI = Object.create(null);
+
+(function($, moduleName) {
   'use strict';
 
-  Drupal.behaviors[module] = {
+  CToolsAPI.moduleName = moduleName;
+  CToolsAPI.getFIDByURI = function(uri, callback) {
+    console.log('/' + this.moduleName + '/get_fid_by_uri', uri);
+    $.get('/' + this.moduleName + '/get_fid_by_uri', {uri: uri}, function(fid) {
+      if (fid > 0) {
+        callback(fid);
+      }
+    });
+  };
+
+  Drupal.behaviors[moduleName] = {
     attach: function(context) {
       var $context = $(context);
 
       // Process all [type=checkbox] and [type=radio] fields.
-      $context.find('.form-type-checkbox, .form-type-radio').once(module, function() {
-        var $checkbox = $(this).children('input'),
-            input = $checkbox[0];
+      $context.find('.form-type-checkbox, .form-type-radio').once(moduleName, function() {
+        var $checkbox = $(this).children('input');
+        var input = $checkbox[0];
 
         $checkbox.after('<label class="pseudo-box ' + input.type + '" for="' + input.id + '"></label>');
       });
 
       // Process all [type=file] fields.
-      $context.find('.form-type-managed-file').once(module, function() {
+      $context.find('.form-type-managed-file').once(moduleName, function() {
         var $container = $(this);
 
         $container.find('[type=file]').css({position: 'fixed', top: '-100px'}).each(function() {
           var $filed = $(this).bind('change', function() {
-                $wrapper.text(this.value.replace(/.*\\(.*)$/g, '$1')).toggleClass('focus');
-              }),
-              $wrapper = $('<div class="pseudo-file" />').bind('click', function() {
-                $filed.click();
-                $(this).toggleClass('focus');
-              });
+            $wrapper.text(this.value.replace(/.*\\(.*)$/g, '$1')).toggleClass('focus');
+          });
+
+          var $wrapper = $('<div class="pseudo-file" />').bind('click', function() {
+            $filed.click();
+            $(this).toggleClass('focus');
+          });
 
           $wrapper.prependTo(this.parentNode);
         });
@@ -33,15 +47,15 @@
       });
 
       // Handler for "horizontal_tabs" type.
-      $context.find('.horizontal-tabs').once(module, function() {
-        var $tabs = $('<ul class="clearfix" />'),
-            $fieldsets = $(this).children('fieldset'),
-            hash = location.hash.substr(1).split(':'),
-            $firstTab = [];
+      $context.find('.horizontal-tabs').once(moduleName, function() {
+        var $tabs = $('<ul class="clearfix" />');
+        var $fieldsets = $(this).children('fieldset');
+        var hash = location.hash.substr(1).split(':');
+        var $firstTab = [];
 
         $fieldsets.each(function() {
-          var $fieldset = $(this),
-              containerId = this.parentNode.id;
+          var $fieldset = $(this);
+          var containerId = this.parentNode.id;
 
           $tabs.append($('<li class="' + this.id + '">' + $fieldset.children('legend').text() + '</li>').bind('click', function() {
             var $tab = $(this);
