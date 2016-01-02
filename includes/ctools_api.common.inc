@@ -271,6 +271,8 @@ function ctools_api_theme_hook($plugin_name, $variant) {
  *
  * @throws \Exception
  *   When theme is not initialized.
+ * @throws \RuntimeException
+ *   When passed an incorrect plugin definition or settings.
  *
  * @return string
  *   HTML content.
@@ -288,8 +290,10 @@ function ctools_api_apply_theme($plugin_name, array $conf, array $plugin, array 
     if (isset($registry[$hook])) {
       foreach ([
         'css' => [],
+        // Add scripts before closing "body" tag.
         'js' => ['scope' => 'footer'],
       ] as $asset => $options) {
+        // Replace all "templates" words in a path.
         $file = str_replace('templates', $asset, "{$registry[$hook]['path']}/{$registry[$hook]['template']}.$asset");
 
         if (file_exists($file)) {
@@ -299,9 +303,17 @@ function ctools_api_apply_theme($plugin_name, array $conf, array $plugin, array 
 
       return theme(ctools_api_theme_hook($plugin_name, $conf['theme']), $variables);
     }
+
+    watchdog(CTOOLS_API_MODULE_TITLE, '%hook theme hook not found in registry.', [
+      '%hook' => $hook,
+    ]);
+
+    return t('You must create at least one template to output content.');
   }
 
-  return t('You must create at least one template to output content.');
+  throw new \RuntimeException(t('Wrong invocation of @function function..', [
+    '@function' => __FUNCTION__,
+  ]));
 }
 
 /**

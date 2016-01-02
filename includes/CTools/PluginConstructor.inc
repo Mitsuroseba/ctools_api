@@ -122,7 +122,7 @@ class PluginConstructor {
    * Call plugin type constructor for updating/changing definition information.
    */
   private function callTypeConstructor() {
-    $constructor = "ctools_api_$this->type";
+    $constructor = "ctools_api_{$this->type}_plugin_constructor";
 
     if (!function_exists($constructor)) {
       throw new \InvalidArgumentException(t('The "@type" plugin type is unsupported!', [
