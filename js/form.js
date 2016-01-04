@@ -1,4 +1,3 @@
-// Create simple object without prototype.
 var CToolsAPI = Object.create(null);
 
 (function($, moduleName) {
