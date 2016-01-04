@@ -115,6 +115,22 @@ function ctools_api_theme(array $existing, $type, $theme, $path) {
 }
 
 /**
+ * Implements hook_theme_registry_alter().
+ */
+function ctools_api_theme_registry_alter(array &$theme_registry) {
+  // Alter the "panels_flexible" theme to remove any markup of layout. This
+  // needed to allow style plugins and pane templates affect on a markup.
+  $hook = 'panels_flexible';
+
+  if (isset($theme_registry[$hook])) {
+    $entry =& $theme_registry[$hook];
+
+    $entry['function'] = "ctools_api_$hook";
+    $entry['includes'][] = CTOOLS_API_MODULE_PATH . '/includes/ctools_api.theme.inc';
+  }
+}
+
+/**
  * Implements hook_form_alter().
  */
 function ctools_api_form_alter(array &$form, array &$form_state, $form_id) {
