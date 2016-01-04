@@ -726,9 +726,9 @@ function ctools_api_plugin_base_configuration_form_submit(array $form, array &$f
 /**
  * Apply display default style to newly created region.
  *
- * @see panels_ajax_flexible_edit_add()
- *
  * @internal
+ *
+ * @see panels_ajax_flexible_edit_add()
  *
  * @param array $form
  *   Form elements implementation.
