@@ -1,6 +1,6 @@
 # CTools API
 
-OOP representation for `content_types`, `styles` and `access` types of CTools plugins.
+OOP representation for `content_types`, `styles` and `access` types of [CTools](https://www.drupal.org/project/ctools) plugins.
 
 ## Main features
 
