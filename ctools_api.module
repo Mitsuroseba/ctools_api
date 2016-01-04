@@ -179,6 +179,13 @@ function ctools_api_form_alter(array &$form, array &$form_state, $form_id) {
       // it forms a correct structure of $form_state['values'] array.
       array_unshift($form['#submit'], 'ctools_api_plugin_base_configuration_form_submit');
       break;
+
+    // Panels provide a "Display settings" button that allow to configure
+    // default caching and style settings for every panel. On saving
+    // configuration occurs nothing.
+    case 'panels_flexible_add_item_form':
+      $form['#submit'][] = 'ctools_api_panels_flexible_add_item_form_submit';
+      break;
   }
 }
 

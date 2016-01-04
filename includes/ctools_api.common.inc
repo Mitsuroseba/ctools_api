@@ -709,6 +709,39 @@ function ctools_api_plugin_base_configuration_form_submit(array $form, array &$f
       $form_state['values']['settings'] = $form_state['conf'];
     }
   }
+
+  // Save display style settings.
+  // @see \panels_renderer_editor::get_style()
+  // This defaults will be applied when new region will be created.
+  // @see ctools_api_panels_flexible_add_item_form_submit()
+  if (isset($form_state['type'], $form_state['renderer']) && 'display' === $form_state['type']) {
+    // Configuration MUST be stored in cache, and, when "Update and save" button
+    // will be clicked, then all data from cache will transferred to database.
+    $renderer = $form_state['renderer'];
+    $renderer->cache->display->panel_settings['style_settings']['default'] = $form_state['conf'];
+    panels_edit_cache_set($renderer->cache);
+  }
+}
+
+/**
+ * Apply display default style to newly created region.
+ *
+ * @see panels_ajax_flexible_edit_add()
+ *
+ * @internal
+ *
+ * @param array $form
+ *   Form elements implementation.
+ * @param array $form_state
+ *   Drupal form state.
+ */
+function ctools_api_panels_flexible_add_item_form_submit(array $form, array &$form_state) {
+  $panel_settings =& $form_state['display']->panel_settings;
+
+  // Apply display default style to newly created region.
+  $panel_settings[$form_state['key']]['style'] = $panel_settings['style'];
+  // Transfer setting of default style to newly created region.
+  $panel_settings['style_settings'][$form_state['key']] = $panel_settings['style_settings']['default'];
 }
 
 /**
