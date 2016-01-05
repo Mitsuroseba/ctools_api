@@ -444,14 +444,7 @@ function ctools_api_plugin_base_configuration_form_process(array $items, array &
 
     // Allow "#ajax => TRUE".
     if (isset($element['#ajax'])) {
-      // MUST to be added to render default fields, provided by CTools.
-      if (empty($once['include_content_added'])) {
-        ctools_form_include($form_state, 'content');
-        $once['include_content_added'] = TRUE;
-      }
-
       $element['#ajax'] = [
-        'wrapper' => 'ctools_api_plugin_base_configuration_form',
         'callback' => 'ctools_api_plugin_base_configuration_form_ajax',
       ];
     }
