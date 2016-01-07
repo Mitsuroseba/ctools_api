@@ -544,16 +544,21 @@ function ctools_api_plugin_base_configuration_form_process(array $items, array &
               continue;
             }
 
-            if (!isset($once[$widget]) && module_exists($data['#module'])) {
-              list($func, $arguments) = $data['#function'];
-              $path = trim(call_user_func_array($func, $arguments), '/');
+            if (!isset($once[$widget])) {
+              if (module_exists($data['#module'])) {
+                list($func, $arguments) = $data['#function'];
+                $path = trim(call_user_func_array($func, $arguments), '/');
 
-              // In this case the module will not exist.
-              if (empty($path)) {
+                // In this case the module will not exist.
+                if (empty($path)) {
+                  continue;
+                }
+
+                $once[$widget] = $path . '/' . $data['#subfolder'];
+              }
+              else {
                 continue;
               }
-
-              $once[$widget] = $path . '/' . $data['#subfolder'];
             }
 
             $settings = [
@@ -710,7 +715,7 @@ function ctools_api_plugin_base_configuration_form_submit(array $form, array &$f
   if (isset($form_state['type'], $form_state['renderer']) && 'display' === $form_state['type']) {
     // Configuration MUST be stored in cache, and, when "Update and save" button
     // will be clicked, then all data from cache will transferred to database.
-    $renderer = $form_state['renderer'];
+    $renderer =& $form_state['renderer'];
     $renderer->cache->display->panel_settings['style_settings']['default'] = $form_state['conf'];
     panels_edit_cache_set($renderer->cache);
   }

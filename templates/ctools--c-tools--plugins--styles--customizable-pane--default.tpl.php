@@ -20,7 +20,7 @@
         <<?php print $info['tag']; ?><?php print drupal_attributes($info['attributes']); ?>>
       <?php endif; ?>
 
-        <?php print $content->$name; ?>
+        <?php print render($content->$name); ?>
 
       <?php if (!empty($info['tag'])): ?>
         </<?php print $info['tag']; ?>>
