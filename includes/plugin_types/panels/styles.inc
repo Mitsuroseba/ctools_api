@@ -72,6 +72,10 @@ function theme_ctools_api_styles_base_render_pane(array $variables) {
     end($parts),
   ])));
 
+  if ($content->title_overriden) {
+    $content->title = '';
+  }
+
   $plugin['object']::preprocess($content, $conf, $variables);
 
   return ctools_api_apply_theme($plugin['object'], $conf, $plugin, $variables);

@@ -11,7 +11,7 @@ var CToolsAPI = Object.create(null);
    * @param {Function} callback
    */
   CToolsAPI.getFIDByURI = function(uri, callback) {
-    $.get('/' + this.moduleName + '/get_fid_by_uri', {uri: uri}, function(fid) {
+    $.get(Drupal.settings.basePath + this.moduleName + '/get_fid_by_uri', {uri: uri}, function(fid) {
       if (fid > 0) {
         callback(fid);
       }
