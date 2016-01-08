@@ -35,7 +35,7 @@
     };
 
     window.open(
-      '/' + fileManager + '/' + manager.schemeName + '?app=nomatter|imceload@' + manager.fileManagerID,
+      Drupal.settings.basePath + '/' + fileManager + '/' + manager.schemeName + '?app=nomatter|imceload@' + manager.fileManagerID,
       '',
       'width=760,height=560,resizable=1'
     );
