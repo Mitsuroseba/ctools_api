@@ -335,7 +335,7 @@ function ctools_api_plugin_base_configuration_form(array &$form, array &$form_st
     // the form will not know anything about files with classes after
     // obtaining from cache.
     while ($reflection = $reflection->getParentClass()) {
-      $file = $plugin['plugin module path'] . str_replace(CTOOLS_API_MODULE_DIR, '', $reflection->getFileName());
+      $file = trim(str_replace(DRUPAL_ROOT, '', $reflection->getFileName()), '/');
       $form_state['build_info']['files'][$file] = $file;
     }
 
@@ -384,6 +384,7 @@ function ctools_api_plugin_base_configuration_form(array &$form, array &$form_st
     if (!empty($plugin['theme variants'])) {
       $items = array_merge([
         'theme' => [
+          '#ajax' => TRUE,
           '#type' => 'select',
           '#title' => t('Theme variant'),
           '#options' => $plugin['theme variants'],
@@ -395,6 +396,9 @@ function ctools_api_plugin_base_configuration_form(array &$form, array &$form_st
     $form += ctools_api_plugin_base_configuration_form_process($items, $form_state, $form_state['input'], $plugin);
     // Store all parent elements.
     $form_state['#elements'] = array_keys($items);
+    // Attach the file with plugin definition to the form to be
+    // sure that everything will be okay on rebuilding state.
+    $form_state['build_info']['files']['ctools_api'] = $plugin['location'];
 
     foreach (['css', 'js'] as $extension) {
       // Attach "form.css" and "form.js" provided by
@@ -438,15 +442,16 @@ function ctools_api_plugin_base_configuration_form_process(array $items, array &
 
   foreach ($items as $name => &$element) {
     $type = isset($element['#type']) ? $element['#type'] : '';
-    // Attach the file with plugin definition to the form to be
-    // sure that everything will be okay on rebuilding state.
-    $form_state['build_info']['files']['ctools_api'] = $plugin['location'];
 
     // Allow "#ajax => TRUE".
     if (isset($element['#ajax'])) {
       $element['#ajax'] = [
         'callback' => 'ctools_api_plugin_base_configuration_form_ajax',
       ];
+    }
+
+    if (!empty($element['#ctools_api_processed'])) {
+      continue;
     }
 
     switch ($type) {
@@ -467,25 +472,13 @@ function ctools_api_plugin_base_configuration_form_process(array $items, array &
         break;
 
       case 'link_field':
-        $title = '';
-        $description = '';
         $titles = [
           'url' => t('URL'),
           'title' => t('Title'),
         ];
 
-        if (!empty($element['#title'])) {
-          $title = '<label>' . $element['#title'] . '</label>';
-        }
-
-        if (!empty($element['#description'])) {
-          $description = '<div class="description">' . $element['#description'] . '</div>';
-        }
-
-        $element = array_merge($element, [
+        $element = array_merge($element, ctools_api_element_prefix('link', $element), [
           '#tree' => TRUE,
-          '#prefix' => '<div class="form-item form-item-link" id="form-item-' . $name . '">' . $title . '<div class="form-link-item-wrapper">',
-          '#suffix' => '</div>' . $description . '</div>',
           'title' => [
             '#type' => 'textfield',
             '#title' => $titles['title'],
@@ -506,11 +499,6 @@ function ctools_api_plugin_base_configuration_form_process(array $items, array &
         break;
 
       case 'managed_file':
-        // Allow to affect on image preview.
-        $element += [
-          '#preview' => TRUE,
-        ];
-
         if (!isset($element['#upload_location'])) {
           $element['#upload_location'] = file_default_scheme() . '://';
         }
@@ -600,17 +588,49 @@ function ctools_api_plugin_base_configuration_form_process(array $items, array &
             }
 
             // @todo Unable to pass "data-*" or another one attribute.
-            $element['#attributes']['class'][] = "$widget-file-manager $settings_key";
+            $element['#attributes']['class'][$settings_key] = "$widget-file-manager $settings_key";
           }
         }
 
-        if (!isset($once['image_module_enabled'])) {
-          $once['image_module_enabled'] = module_exists('image');
-        }
+        if (isset($element['#subtype']) && 'image' === $element['#subtype']) {
+          $element['#ctools_api_processed'] = TRUE;
 
-        if ($once['image_module_enabled'] && $element['#preview']) {
-          // @see ctools_api_field_managed_file_pre_render().
-          $element['#pre_render'][] = "ctools_api_field_{$type}_pre_render";
+          $element += [
+            // Allow to affect on image preview.
+            '#preview' => TRUE,
+            '#styles' => TRUE,
+          ];
+
+          if ($element['#preview']) {
+            // @see ctools_api_field_managed_file_pre_render().
+            $element['#pre_render'][] = "ctools_api_field_{$type}_pre_render";
+          }
+
+          if ($element['#styles']) {
+            $element = ctools_api_element_prefix('image', $element) + [
+              '#tree' => TRUE,
+              'image' => $element,
+              'style' => [
+                '#type' => 'select',
+                '#title' => t('Image style'),
+                '#options' => image_style_options(),
+              ],
+            ];
+
+            // The file ID must be directly set to field default value.
+            if (!empty($conf[$name])) {
+              foreach ($conf[$name] as $item => $value) {
+                // Array could be after "Upload" button pressed.
+                // @code
+                // [
+                //   'fid' => 1,
+                //   'upload' => NULL,
+                // ]
+                // @endcode
+                $element[$item]['#default_value'] = is_array($value) ? reset($value) : $value;
+              }
+            }
+          }
         }
         break;
     }
@@ -768,7 +788,7 @@ function ctools_api_plugin_base_configuration_form_process_specific_elements_sub
       $file = file_load(drupal_array_get_nested_value($form_state['conf'], $form['#parents']));
 
       if (FALSE !== $file) {
-        file_delete($file, TRUE);
+        file_delete($file);
       }
     }
 
@@ -777,7 +797,7 @@ function ctools_api_plugin_base_configuration_form_process_specific_elements_sub
 
   // Process collections.
   // @see \CTools\Plugins\ContentTypes\Form\Elements\Collection
-  if (isset($form['#subtype'], $form['#name']) && 'collection' === $form['#subtype'] && empty($once[$form['#name']])) {
+  if (isset($form['#subtype'], $form['#id']) && 'collection' === $form['#subtype'] && empty($once[$form['#id']])) {
     $items =& drupal_array_get_nested_value($form_state['values'], $form['#parents']);
 
     // Remove buttons.
@@ -788,7 +808,7 @@ function ctools_api_plugin_base_configuration_form_process_specific_elements_sub
     // Remove empty items.
     $items = array_filter($items);
 
-    $once[$form['#name']] = TRUE;
+    $once[$form['#id']] = TRUE;
   }
 
   // Recursively call this function for sure that all field
@@ -800,6 +820,8 @@ function ctools_api_plugin_base_configuration_form_process_specific_elements_sub
 
 /**
  * Pre render callback for "managed_file" field type.
+ *
+ * @internal
  *
  * @see theme_image_style()
  * @see theme_image()
@@ -847,6 +869,39 @@ function ctools_api_field_managed_file_pre_render(array $element) {
   }
 
   return $element;
+}
+
+/**
+ * Prefix and suffix to wrap fields.
+ *
+ * @internal
+ *
+ * @param string $type
+ *   Element type.
+ * @param array $element
+ *   Element definition
+ *
+ * @return string[]
+ *   HTML wrapper markup.
+ */
+function ctools_api_element_prefix($type, array &$element) {
+  $title = '';
+  $description = '';
+
+  if (!empty($element['#title'])) {
+    $title = '<label>' . $element['#title'] . '</label>';
+  }
+
+  if (!empty($element['#description'])) {
+    $description = '<div class="description">' . $element['#description'] . '</div>';
+  }
+
+  unset($element['#description']);
+
+  return [
+    '#prefix' => '<div class="form-item form-item-' . $type . '">' . $title . '<div class="form-' . $type . '-item-wrapper">',
+    '#suffix' => '</div>' . $description . '</div>',
+  ];
 }
 
 /**

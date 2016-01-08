@@ -49,6 +49,7 @@ class Collection {
       '#tree' => TRUE,
       '#type' => 'table',
       '#sticky' => FALSE,
+      '#header' => [],
       '#subtype' => self::TYPE,
       '#attributes' => [
         'class' => ['form-item', self::TYPE],
@@ -71,17 +72,28 @@ class Collection {
 
       // Populate properties.
       foreach (element_properties($items) as $prop) {
-        $element[$prop] = isset($element[$prop]) ? array_merge($element[$prop], $items[$prop]) : $items[$prop];
+        if (isset($element[$prop]) && is_array($element[$prop])) {
+          $element[$prop] = array_merge($element[$prop], $items[$prop]);
+        }
+        else {
+          $element[$prop] = $items[$prop];
+        }
       }
 
-      // Remove titles from elements and set them to table cells.
-      foreach ($children as $td) {
-        $element['#header'][$td] = isset($items[$td]['#title']) ? $items[$td]['#title'] : '';
-        unset($items[$td]['#title']);
+      if ('table' === $element['#type']) {
+        // Remove titles from elements and set them to table cells.
+        foreach ($children as $td) {
+          $element['#header'][$td] = isset($items[$td]['#title']) ? $items[$td]['#title'] : '';
+
+          unset($items[$td]['#title']);
+        }
+
+        // Add the "Remove" button to each row.
+        $element['#header']['_operations'] = t('Operations');
       }
 
-      // Add the "Remove" button to each row.
-      $element['#header']['_operations'] = t('Operations');
+      // Could be "fieldset" or "table".
+      $element['#attributes']['class'][] = $element['#type'] . '-collection';
 
       $items['_operations'] = [
         '#type' => 'items',

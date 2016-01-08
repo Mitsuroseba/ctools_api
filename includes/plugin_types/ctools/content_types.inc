@@ -20,8 +20,17 @@ function ctools_api_content_types(array &$information, array $interfaces) {
  *
  * @see ctools_content_admin_title()
  */
-function ctools_api_ctools_api_content_type_admin_title($object) {
-  return class_exists($object) && method_exists($object, 'name') ? $object::name() : '';
+function ctools_api_ctools_api_content_type_admin_title($object, array $conf) {
+  /* @var \CTools\Plugins\ContentTypes\ContentTypesInterface $object */
+  if (class_exists($object)) {
+    $variants = $object::themeVariants();
+
+    return $object::name() . ' (' . (isset($variants[$conf['theme']]) ? $variants[$conf['theme']] : t('Default')) . ')';
+  }
+
+  return t('The plugin object @object does not exist.', [
+    '@object' => $object,
+  ]);
 }
 
 /**
@@ -45,12 +54,15 @@ function ctools_api_ctools_api_content_type_render($content_type, array $conf, a
   $block->title = $conf['override_title_text'];
   $block->delta = $content_type;
   $block->region = $block->module = 'ctools_api';
+  $block->content = '';
 
-  $plugin['object']::preprocess($conf, $args, $context);
+  if (!empty($plugin)) {
+    $plugin['object']::preprocess($conf, $args, $context);
 
-  $block->content = ctools_api_apply_theme($content_type, $conf, $plugin, [
-    'content' => $conf,
-  ]);
+    $block->content = ctools_api_apply_theme($content_type, $conf, $plugin, [
+      'content' => $conf,
+    ]);
+  }
 
   return $block;
 }

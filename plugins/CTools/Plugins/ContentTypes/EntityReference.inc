@@ -149,7 +149,7 @@ class EntityReference implements ContentTypesInterface {
   /**
    * {@inheritdoc}
    */
-  private static function referenceItem(array $form_state, array $data) {
+  protected static function referenceItem(array $form_state, array $data) {
     $item = [];
 
     $item['entity_type'] = [

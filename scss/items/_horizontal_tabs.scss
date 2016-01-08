@@ -27,7 +27,7 @@
   legend {
     display: none;
   }
-  fieldset {
+  & > fieldset {
     display: none;
     border: 0;
     height: auto !important;

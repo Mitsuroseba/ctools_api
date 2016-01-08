@@ -3,5 +3,6 @@ description = OOP abstraction layer for CTools plugins
 core = 7.x
 php = 5.4
 
+dependencies[] = image
 dependencies[] = ctools
 dependencies[] = panels
