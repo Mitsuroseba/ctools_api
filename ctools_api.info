@@ -6,3 +6,4 @@ php = 5.4
 dependencies[] = image
 dependencies[] = ctools
 dependencies[] = panels
+dependencies[] = table_element

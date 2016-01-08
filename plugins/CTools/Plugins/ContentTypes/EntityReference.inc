@@ -42,7 +42,7 @@ class EntityReference implements ContentTypesInterface {
    * {@inheritdoc}
    */
   public static function dependencies() {
-    return ['entityreference_autocomplete', 'table_element'];
+    return ['entityreference_autocomplete'];
   }
 
   /**
