@@ -17,8 +17,6 @@ interface TemplatablePluginInterface extends PluginInterface {
   /**
    * Theme variations. "default" variant provided by default.
    *
-   * @see CTools\PluginConstructor::attachThemeAssets()
-   *
    * @code
    * namespace VendorName\PluginsGroupName;
    *
