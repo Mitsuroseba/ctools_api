@@ -441,6 +441,10 @@ function ctools_api_plugin_base_configuration_form_process(array $items, array &
   static $once = [];
 
   foreach ($items as $name => &$element) {
+    if (!empty($element['#ctools_api_processed'])) {
+      continue;
+    }
+
     $type = isset($element['#type']) ? $element['#type'] : '';
 
     // Allow "#ajax => TRUE".
@@ -448,10 +452,6 @@ function ctools_api_plugin_base_configuration_form_process(array $items, array &
       $element['#ajax'] = [
         'callback' => 'ctools_api_plugin_base_configuration_form_ajax',
       ];
-    }
-
-    if (!empty($element['#ctools_api_processed'])) {
-      continue;
     }
 
     switch ($type) {
@@ -592,6 +592,45 @@ function ctools_api_plugin_base_configuration_form_process(array $items, array &
           }
         }
 
+        if (!empty($conf[$name])) {
+          $id =& $conf[$name];
+
+          // Will be when #subtype is "image".
+          if (isset($id['image'])) {
+            $id =& $id['image'];
+          }
+
+          // Array could be after "Upload" button pressed.
+          // @code
+          // [
+          //   'fid' => 1,
+          //   'upload' => NULL,
+          // ]
+          // @endcode
+          if (is_array($id)) {
+            $id = reset($id);
+          }
+
+          // Null could be after "Remove" button pressed.
+          if (is_null($id)) {
+            $id = 0;
+          }
+
+          // Transform file hash to ID.
+          if (module_exists('file_md5')) {
+            // 32 - is a length of MD5 hash of a file.
+            // @see _file_md5_schema_file_managed_field_definitions()
+            $file = strlen($id) === 32 ? file_md5_load_by('md5', $id) : file_load($id);
+
+            if (FALSE !== $file) {
+              $id = $file->fid;
+            }
+          }
+
+          // The file ID must be directly set to field default value.
+          $element['#default_value'] = $id;
+        }
+
         if (isset($element['#subtype']) && 'image' === $element['#subtype']) {
           $element['#ctools_api_processed'] = TRUE;
 
@@ -616,20 +655,6 @@ function ctools_api_plugin_base_configuration_form_process(array $items, array &
                 '#options' => image_style_options(),
               ],
             ];
-
-            // The file ID must be directly set to field default value.
-            if (!empty($conf[$name])) {
-              foreach ($conf[$name] as $item => $value) {
-                // Array could be after "Upload" button pressed.
-                // @code
-                // [
-                //   'fid' => 1,
-                //   'upload' => NULL,
-                // ]
-                // @endcode
-                $element[$item]['#default_value'] = is_array($value) ? reset($value) : $value;
-              }
-            }
           }
         }
         break;
@@ -712,6 +737,13 @@ function ctools_api_plugin_base_configuration_form_submit(array $form, array &$f
   $plugin = ctools_api_form_state_get_plugin($form_state);
 
   if (!empty($form_state['#elements']) && isset($plugin['object'])) {
+    // Allow to affect on this setting from a configuration form.
+    if (empty($form_state['#file_md5'])) {
+      // Save MD5 hash of file contents instead of ID. This is useful for
+      // content migrations.
+      $form_state['#file_md5'] = module_exists('file_md5');
+    }
+
     ctools_api_plugin_base_configuration_form_process_specific_elements_submit($form, $form_state);
 
     foreach ($form_state['#elements'] as $field_name) {
@@ -737,6 +769,7 @@ function ctools_api_plugin_base_configuration_form_submit(array $form, array &$f
     // will be clicked, then all data from cache will transferred to database.
     $renderer =& $form_state['renderer'];
     $renderer->cache->display->panel_settings['style_settings']['default'] = $form_state['conf'];
+    // @todo Create a patch to Panels and remove this line.
     panels_edit_cache_set($renderer->cache);
   }
 }
@@ -781,6 +814,10 @@ function ctools_api_plugin_base_configuration_form_process_specific_elements_sub
     if ($form['#value']['fid'] > 0) {
       $file = file_load($form['#value']['fid']);
       $file->status = FILE_STATUS_PERMANENT;
+
+      if (!empty($form_state['#file_md5'])) {
+        drupal_array_set_nested_value($form_state['values'], $form['#parents'], $file->md5);
+      }
 
       file_usage_add(file_save($file), 'ctools_api', 'user', $user->uid);
     }

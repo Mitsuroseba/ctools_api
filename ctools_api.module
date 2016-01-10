@@ -2,8 +2,6 @@
 /**
  * @file
  * Chaos Tools Suite API.
- *
- * @author Sergii Bondarenko <sb@firstvector.org>
  */
 
 define('CTOOLS_API_MODULE_DIR', __DIR__);

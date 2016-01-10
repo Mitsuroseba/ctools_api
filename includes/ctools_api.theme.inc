@@ -81,10 +81,9 @@ function _ctools_api_panels_flexible_render_items(\stdClass $renderer, array $re
 }
 
 /**
- * Render a column in the flexible layout.
+ * {@inheritdoc}
  *
  * @internal
- * @inheritdoc
  *
  * @see panels_flexible_render_item()
  */
