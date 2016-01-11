@@ -596,7 +596,7 @@ function ctools_api_plugin_base_configuration_form_process(array $items, array &
           $id =& $conf[$name];
 
           // Will be when #subtype is "image".
-          if (isset($id['image'])) {
+          if (array_key_exists('image', $id)) {
             $id =& $id['image'];
           }
 
@@ -618,9 +618,7 @@ function ctools_api_plugin_base_configuration_form_process(array $items, array &
 
           // Transform file hash to ID.
           if (module_exists('file_md5')) {
-            // 32 - is a length of MD5 hash of a file.
-            // @see _file_md5_schema_file_managed_field_definitions()
-            $file = strlen($id) === 32 ? file_md5_load_by('md5', $id) : file_load($id);
+            $file = file_md5_load_by('md5', $id);
 
             if (FALSE !== $file) {
               $id = $file->fid;
@@ -741,8 +739,11 @@ function ctools_api_plugin_base_configuration_form_submit(array $form, array &$f
     if (empty($form_state['#file_md5'])) {
       // Save MD5 hash of file contents instead of ID. This is useful for
       // content migrations.
-      $form_state['#file_md5'] = module_exists('file_md5');
+      $form_state['#file_md5'] = TRUE;
     }
+
+    // Correct the condition by checking that File MD5 module exists.
+    $form_state['#file_md5'] &= module_exists('file_md5');
 
     ctools_api_plugin_base_configuration_form_process_specific_elements_submit($form, $form_state);
 
