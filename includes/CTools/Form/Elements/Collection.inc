@@ -83,7 +83,15 @@ class Collection {
       if ('table' === $element['#type']) {
         // Remove titles from elements and set them to table cells.
         foreach ($children as $td) {
-          $element['#header'][$td] = isset($items[$td]['#title']) ? $items[$td]['#title'] : '';
+          // Extend an item with an #access property. If it absent - Drupal
+          // thinks that an access granted. So, this done to not check for
+          // FALSE and isset().
+          $items[$td] += ['#access' => TRUE];
+
+          // Do not add header if an access was not granted to an element.
+          if (!empty($items[$td]['#access'])) {
+            $element['#header'][$td] = isset($items[$td]['#title']) ? $items[$td]['#title'] : '';
+          }
 
           unset($items[$td]['#title']);
         }
