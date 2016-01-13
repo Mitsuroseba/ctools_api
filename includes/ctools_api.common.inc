@@ -339,7 +339,10 @@ function ctools_api_plugin_base_configuration_form(array &$form, array &$form_st
       $form_state['build_info']['files'][$file] = $file;
     }
 
-    $form_state['input'] = array_merge($form_state['conf'], $form_state['input']);;
+    $form_state['input'] = array_merge($form_state['conf'], $form_state['input']);
+    // Add default theme variant (if not exist) to configuration.
+    $form_state['input'] += ['theme' => 'default'];
+    $form['#attributes']['class'][] = 'variant-' . $form_state['input']['theme'];
 
     if (isset($form_state['triggering_element'])) {
       $trigger = $form_state['triggering_element'];
@@ -388,7 +391,7 @@ function ctools_api_plugin_base_configuration_form(array &$form, array &$form_st
           '#type' => 'select',
           '#title' => t('Theme variant'),
           '#options' => $plugin['theme variants'],
-          '#default_value' => 'default',
+          '#default_value' => $form_state['input']['theme'],
         ],
       ], $items);
     }
