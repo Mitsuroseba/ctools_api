@@ -56,7 +56,7 @@ function ctools_api_ctools_api_content_type_render($content_type, array $conf, a
   $block->region = $block->module = 'ctools_api';
   $block->content = '';
 
-  if (!empty($plugin)) {
+  if (!empty($plugin) && class_exists($plugin['object'])) {
     $plugin['object']::preprocess($conf, $args, $context);
 
     $block->content = ctools_api_apply_theme($content_type, $conf, $plugin, [

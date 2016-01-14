@@ -327,7 +327,7 @@ function ctools_api_apply_theme($plugin_name, array $conf, array $plugin, array 
 function ctools_api_plugin_base_configuration_form(array &$form, array &$form_state) {
   $plugin = ctools_api_form_state_get_plugin($form_state);
 
-  if (!empty($plugin)) {
+  if (!empty($plugin) && class_exists($plugin['object'])) {
     $reflection = new \ReflectionClass($plugin['object']);
     $items = [];
 
