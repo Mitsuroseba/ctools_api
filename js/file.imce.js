@@ -19,11 +19,8 @@
           imce.setMessage(Drupal.t('You have not selected any file.'), 'error');
         }
         else {
-          manager.process(manager.schemeName + '://' + imce.fileGet(filename).relpath, triggeringElement, function() {
-            // The "close" is a native method of "Window" object. It must be
-            // called directly and must not be passed to function as parameter.
-            imce_window.close();
-          });
+          manager.process(manager.schemeName + '://' + imce.fileGet(filename).relpath, triggeringElement);
+          imce_window.close();
         }
       };
 
