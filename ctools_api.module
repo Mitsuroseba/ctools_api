@@ -144,6 +144,21 @@ function ctools_api_form_alter(array &$form, array &$form_state, $form_id) {
       // NO BREAK HERE! Everything should be as is.
 
     case 'ctools_api_ctools_api_content_type_edit_form':
+      try {
+        $plugin = ctools_api_form_state_get_plugin($form_state);
+
+        // If "object" property does not exist, then this plugin is not
+        // implemented CTools API.
+        if (empty($plugin['object'])) {
+          throw new \Exception();
+        }
+      }
+      // Break future alterations because they are needed only for CTools API
+      // plugins.
+      catch (\Exception $e) {
+        break;
+      }
+
       // Need to extract our form elements to the top level to be able to use
       // unified form implementation and AJAX callbacks. Otherwise, #parents
       // for every element will be wrong.
