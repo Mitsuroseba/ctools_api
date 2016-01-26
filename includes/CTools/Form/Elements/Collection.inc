@@ -41,7 +41,7 @@ class Collection {
    */
   public function __construct(array $parents, array &$form, array &$form_state, array &$conf, callable $process) {
     // Pass button texts to translate interface.
-    array_map('t', static::$buttonTexts);
+    static::$buttonTexts = array_map('t', static::$buttonTexts);
     $name = ctools_api_html_name_from_array($parents);
     // Check that we already have saved values for our collection.
     $values = drupal_array_get_nested_value($conf, $parents);
