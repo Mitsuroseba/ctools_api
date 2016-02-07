@@ -620,8 +620,8 @@ function ctools_api_plugin_base_configuration_form_process(array $items, array &
           }
 
           // Transform file hash to ID.
-          if (module_exists('file_md5')) {
-            $file = file_md5_load_by('md5', $id);
+          if (function_exists('file_md5_load_file')) {
+            $file = file_md5_load_file($id);
 
             if (FALSE !== $file) {
               $id = $file->fid;
