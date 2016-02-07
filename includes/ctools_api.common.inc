@@ -725,14 +725,24 @@ function ctools_api_plugin_base_configuration_form_ajax(array $form, array &$for
 }
 
 /**
- * Save plugin configuration.
+ * {@inheritdoc}
  *
+ * @see ctools_api_plugin_base_configuration_form()
  * @internal
+ */
+function ctools_api_plugin_base_configuration_form_validate(array $form, array &$form_state) {
+  $plugin = ctools_api_form_state_get_plugin($form_state);
+
+  if (isset($plugin['object'])) {
+    $plugin['object']::configurationFormValidate($form, $form_state, $form_state['values']);
+  }
+}
+
+/**
+ * {@inheritdoc}
  *
- * @param array $form
- *   Form elements implementation.
- * @param array $form_state
- *   Drupal form state.
+ * @see ctools_api_plugin_base_configuration_form()
+ * @internal
  */
 function ctools_api_plugin_base_configuration_form_submit(array $form, array &$form_state) {
   $plugin = ctools_api_form_state_get_plugin($form_state);

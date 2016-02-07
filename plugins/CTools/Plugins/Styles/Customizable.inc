@@ -39,6 +39,13 @@ abstract class Customizable implements StylesInterface {
   /**
    * {@inheritdoc}
    */
+  public static function configurationFormValidate(array &$form, array &$form_state, array &$values) {
+
+  }
+
+  /**
+   * {@inheritdoc}
+   */
   public static function configurationFormSubmit(array &$form, array &$form_state, array &$conf) {
 
   }

@@ -27,6 +27,18 @@ interface ConfigurablePluginInterface extends PluginInterface {
   public static function configurationForm(array &$form, array &$form_state, array &$conf);
 
   /**
+   * Validate form submission.
+   *
+   * @param array $form
+   *   Form elements implementation.
+   * @param array $form_state
+   *   Drupal form state.
+   * @param array $values
+   *   Values from the form elements which will be saved.
+   */
+  public static function configurationFormValidate(array &$form, array &$form_state, array &$values);
+
+  /**
    * Submission callback for configuration form.
    *
    * @param array $form
@@ -55,4 +67,5 @@ interface ConfigurablePluginInterface extends PluginInterface {
    *   Triggering element.
    */
   public static function configurationFormElementCallback(array &$form, array &$form_state, array &$conf, array &$commands, array $element);
+
 }
