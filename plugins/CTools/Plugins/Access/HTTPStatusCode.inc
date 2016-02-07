@@ -68,6 +68,13 @@ class HTTPStatusCode implements AccessInterface {
   /**
    * {@inheritdoc}
    */
+  public static function configurationFormValidate(array &$form, array &$form_state, array &$values) {
+
+  }
+
+  /**
+   * {@inheritdoc}
+   */
   public static function configurationFormSubmit(array &$form, array &$form_state, array &$conf) {
     $conf['available_codes'] = array_filter($conf['available_codes']);
   }
