@@ -440,14 +440,7 @@ function ctools_api_plugin_base_configuration_form(array &$form, array &$form_st
  *   Processed items.
  */
 function ctools_api_plugin_base_configuration_form_process(array $items, array &$form_state, array $conf, array $plugin) {
-  global $language;
-  static $once = [];
-
   foreach ($items as $name => &$element) {
-    if (!empty($element['#ctools_api_processed'])) {
-      continue;
-    }
-
     $type = isset($element['#type']) ? $element['#type'] : '';
 
     // Allow "#ajax => TRUE".
@@ -499,165 +492,6 @@ function ctools_api_plugin_base_configuration_form_process(array $items, array &
         ]);
 
         unset($element['#type']);
-        break;
-
-      case 'managed_file':
-        if (!isset($element['#upload_location'])) {
-          $element['#upload_location'] = file_default_scheme() . '://';
-        }
-
-        // Use one of file browsers.
-        if (isset($element['#widget'])) {
-          $stream_wrapper_scheme = file_uri_scheme($element['#upload_location']);
-          /* @var \DrupalLocalStreamWrapper $stream_wrapper */
-          $stream_wrapper = file_stream_wrapper_get_instance_by_scheme($stream_wrapper_scheme);
-
-          if (FALSE === $stream_wrapper) {
-            break;
-          }
-
-          $stream_url = $stream_wrapper->getDirectoryPath();
-
-          foreach ([
-            'imce' => [
-              '#module' => 'imce',
-              // Function to determine the path of JS library.
-              '#function' => ['drupal_get_path', ['module', 'imce']],
-              '#subfolder' => 'js',
-            ],
-            'ckfinder' => [
-              '#module' => 'ckeditor',
-              '#function' => ['ckfinder_path', []],
-              '#subfolder' => '',
-            ],
-          ] as $widget => $data) {
-            if ($widget !== $element['#widget']) {
-              continue;
-            }
-
-            if (!isset($once[$widget])) {
-              if (module_exists($data['#module'])) {
-                list($func, $arguments) = $data['#function'];
-                $path = trim(call_user_func_array($func, $arguments), '/');
-
-                // In this case the module will not exist.
-                if (empty($path)) {
-                  continue;
-                }
-
-                $once[$widget] = $path . '/' . $data['#subfolder'];
-              }
-              else {
-                continue;
-              }
-            }
-
-            $settings = [
-              'basePath' => DRUPAL_ROOT . '/' . $once[$widget],
-              'location' => $element['#upload_location'],
-              'language' => $language->language,
-              'schemeURL' => $stream_url,
-              'schemeName' => $stream_wrapper_scheme,
-            ];
-
-            $settings_key = md5(serialize($settings));
-
-            // Pass only unique settings.
-            if (!isset($once[$settings_key])) {
-              $element['#attached']['js'] = [
-                // Widget library.
-                [
-                  'data' => $once[$widget] . "/$widget.js",
-                  'weight' => -1002,
-                ],
-                // CTools API File Manager.
-                [
-                  'data' => CTOOLS_API_MODULE_PATH . '/js/file.js',
-                  'weight' => -1001,
-                ],
-                // Implementation of one of file managers.
-                [
-                  'data' => CTOOLS_API_MODULE_PATH . "/js/file.$widget.js",
-                  'weight' => -1000,
-                ],
-                // Widget-related settings.
-                [
-                  'type' => 'setting',
-                  'data' => [$settings_key => $settings],
-                ],
-              ];
-
-              $once[$settings_key] = TRUE;
-            }
-
-            // @todo Unable to pass "data-*" or another one attribute.
-            $element['#attributes']['class'][$settings_key] = "$widget-file-manager $settings_key";
-          }
-        }
-
-        if (!empty($conf[$name])) {
-          $id =& $conf[$name];
-
-          // Will be when #subtype is "image".
-          if (array_key_exists('image', $id)) {
-            $id =& $id['image'];
-          }
-
-          // Array could be after "Upload" button pressed.
-          // @code
-          // [
-          //   'fid' => 1,
-          //   'upload' => NULL,
-          // ]
-          // @endcode
-          if (is_array($id)) {
-            $id = reset($id);
-          }
-
-          // Null could be after "Remove" button pressed.
-          if (is_null($id)) {
-            $id = 0;
-          }
-
-          // Transform file hash to ID.
-          if (function_exists('file_md5_load_file')) {
-            $file = file_md5_load_file($id);
-
-            if (FALSE !== $file) {
-              $id = $file->fid;
-            }
-          }
-
-          // The file ID must be directly set to field default value.
-          $element['#default_value'] = $id;
-        }
-
-        if (isset($element['#subtype']) && 'image' === $element['#subtype']) {
-          $element['#ctools_api_processed'] = TRUE;
-
-          $element += [
-            // Allow to affect on image preview.
-            '#preview' => TRUE,
-            '#styles' => TRUE,
-          ];
-
-          if ($element['#preview']) {
-            // @see ctools_api_field_managed_file_pre_render().
-            $element['#pre_render'][] = "ctools_api_field_{$type}_pre_render";
-          }
-
-          if ($element['#styles']) {
-            $element = ctools_api_element_prefix('image', $element) + [
-              '#tree' => TRUE,
-              'image' => $element,
-              'style' => [
-                '#type' => 'select',
-                '#title' => t('Image style'),
-                '#options' => image_style_options(),
-              ],
-            ];
-          }
-        }
         break;
     }
 
@@ -748,16 +582,6 @@ function ctools_api_plugin_base_configuration_form_submit(array $form, array &$f
   $plugin = ctools_api_form_state_get_plugin($form_state);
 
   if (!empty($form_state['#elements']) && isset($plugin['object'])) {
-    // Allow to affect on this setting from a configuration form.
-    if (empty($form_state['#file_md5'])) {
-      // Save MD5 hash of file contents instead of ID. This is useful for
-      // content migrations.
-      $form_state['#file_md5'] = TRUE;
-    }
-
-    // Correct the condition by checking that File MD5 module exists.
-    $form_state['#file_md5'] &= module_exists('file_md5');
-
     ctools_api_plugin_base_configuration_form_process_specific_elements_submit($form, $form_state);
 
     foreach ($form_state['#elements'] as $field_name) {
@@ -814,42 +638,26 @@ function ctools_api_panels_flexible_add_item_form_submit(array $form, array &$fo
  *
  * @internal
  *
- * @param array $form
- *   Form elements implementation.
+ * @param array $element
+ *   Form element.
  * @param array $form_state
  *   Drupal form state.
  */
-function ctools_api_plugin_base_configuration_form_process_specific_elements_submit(array $form, array &$form_state) {
+function ctools_api_plugin_base_configuration_form_process_specific_elements_submit(array $element, array &$form_state) {
   global $user;
   static $once = [];
 
   // Process the files.
-  if (isset($form['#type'], $form['#name']) && 'managed_file' === $form['#type'] && empty($once[$form['#name']])) {
-    if ($form['#value']['fid'] > 0) {
-      $file = file_load($form['#value']['fid']);
-      $file->status = FILE_STATUS_PERMANENT;
+  if (isset($element['#type'], $element['#name']) && 'managed_file' === $element['#type'] && empty($once[$element['#name']])) {
+    managed_file_element_submit($element, $form_state, ['ctools_api', 'user', $user->uid]);
 
-      if (!empty($form_state['#file_md5'])) {
-        drupal_array_set_nested_value($form_state['values'], $form['#parents'], $file->md5);
-      }
-
-      file_usage_add(file_save($file), 'ctools_api', 'user', $user->uid);
-    }
-    else {
-      $file = file_load(drupal_array_get_nested_value($form_state['conf'], $form['#parents']));
-
-      if (FALSE !== $file) {
-        file_delete($file);
-      }
-    }
-
-    $once[$form['#name']] = TRUE;
+    $once[$element['#name']] = TRUE;
   }
 
   // Process collections.
   // @see \CTools\Plugins\ContentTypes\Form\Elements\Collection
-  if (isset($form['#subtype'], $form['#id']) && 'collection' === $form['#subtype'] && empty($once[$form['#id']])) {
-    $items =& drupal_array_get_nested_value($form_state['values'], $form['#parents']);
+  if (isset($element['#subtype'], $element['#id']) && 'collection' === $element['#subtype'] && empty($once[$element['#id']])) {
+    $items =& drupal_array_get_nested_value($form_state['values'], $element['#parents']);
 
     // Remove buttons.
     foreach ($items as &$item) {
@@ -859,67 +667,14 @@ function ctools_api_plugin_base_configuration_form_process_specific_elements_sub
     // Remove empty items.
     $items = array_filter($items);
 
-    $once[$form['#id']] = TRUE;
+    $once[$element['#id']] = TRUE;
   }
 
   // Recursively call this function for sure that all field
   // will be saved correctly.
-  foreach (element_children($form) as $child) {
-    call_user_func_array(__FUNCTION__, [$form[$child], &$form_state]);
+  foreach (element_children($element) as $child) {
+    call_user_func_array(__FUNCTION__, [$element[$child], &$form_state]);
   }
-}
-
-/**
- * Pre render callback for "managed_file" field type.
- *
- * @internal
- *
- * @see theme_image_style()
- * @see theme_image()
- *
- * @param array $element
- *   Form element.
- *
- * @throws \Exception
- *   When theme is not initialize.
- *
- * @return array
- *   Processed form element.
- */
-function ctools_api_field_managed_file_pre_render(array $element) {
-  if (empty($element['#file'])) {
-    hide($element['remove_button']);
-  }
-  else {
-    $file = $element['#file'];
-
-    hide($element['upload']);
-    hide($element['upload_button']);
-
-    if (!file_validate_is_image($file)) {
-      $info = image_get_info($file->uri);
-      $variables = [
-        'alt' => $file->filename,
-        'path' => $file->uri,
-        'style_name' => 'thumbnail',
-        'attributes' => [
-          'class' => ['upload-preview'],
-        ],
-      ];
-
-      if (is_array($info)) {
-        $variables += $info;
-      }
-
-      $element['preview'] = [
-        '#type' => 'markup',
-        '#weight' => -10,
-        '#markup' => theme('image_style', $variables),
-      ];
-    }
-  }
-
-  return $element;
 }
 
 /**

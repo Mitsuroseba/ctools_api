@@ -1,22 +1,5 @@
-var CToolsAPI = Object.create(null);
-
 (function($, moduleName) {
   'use strict';
-
-  CToolsAPI.moduleName = moduleName;
-  /**
-   * Convert file URI to ID.
-   *
-   * @param {String} uri
-   * @param {Function} callback
-   */
-  CToolsAPI.getFIDByURI = function(uri, callback) {
-    $.get(Drupal.settings.basePath + this.moduleName + '/get_fid_by_uri', {uri: uri}, function(fid) {
-      if (fid > 0) {
-        callback(fid);
-      }
-    });
-  };
 
   Drupal.behaviors[moduleName] = {
     attach: function(context) {
@@ -39,7 +22,7 @@ var CToolsAPI = Object.create(null);
             $wrapper.text(this.value.replace(/.*\\(.*)$/g, '$1')).toggleClass('focus');
           });
 
-          var $wrapper = $('<div class="pseudo-file" />').bind('click', function() {
+          var $wrapper = $('<div class="pseudo-file" />').width($filed.width()).bind('click', function() {
             $filed.click();
             $(this).toggleClass('focus');
           });
