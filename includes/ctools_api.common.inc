@@ -258,6 +258,25 @@ function ctools_api_theme_hook($plugin_name, $variant) {
 }
 
 /**
+ * Get CTools API content types.
+ *
+ * @param string $namespace
+ *   Full namespace of a plugin object.
+ *
+ * @return \stdClass[]
+ *   Panel panes.
+ */
+function ctools_api_get_panes_of_type($namespace) {
+  return db_select('panels_pane', 'pp')
+    ->fields('pp')
+    ->condition('type', 'ctools_api')
+    ->condition('subtype', $namespace)
+    ->condition('shown', 1)
+    ->execute()
+    ->fetchAll();
+}
+
+/**
  * Apply theme hook.
  *
  * @param string $plugin_name
