@@ -16,20 +16,21 @@ require_once 'includes/plugin_types/ctools/access.inc';
 // Include API for "content_types" plugins provided by CTools.
 require_once 'includes/plugin_types/ctools/content_types.inc';
 
-ctools_api_register_autoloader_path(CTOOLS_API_MODULE_PATH . '/includes');
-
 spl_autoload_register(function ($namespace) {
-  $relative = str_replace('\\', '/', $namespace);
+  list($base) = explode('\\', $namespace);
+  $map = ctools_api_autoloading_paths();
 
-  // @todo Collect paths as associative array where key - is namespace
-  // and value - relative, to Drupal root, path to file with source code.
   // @codingStandardsIgnoreStart
-  foreach (ctools_api_register_autoloader_path() as $dir) {
-    $file = "$dir/$relative.inc";
+  if (!empty($map[$base])) {
+    $relative = str_replace('\\', '/', $namespace);
 
-    if (file_exists($file)) {
-      require_once $file;
-      break;
+    foreach ($map[$base] as $item) {
+      $file = $item['path'] . "/$relative.inc";
+
+      if (file_exists($file)) {
+        require_once $file;
+        break;
+      }
     }
   }
   // @codingStandardsIgnoreEnd
@@ -226,15 +227,6 @@ function ctools_api_form_alter(array &$form, array &$form_state, $form_id) {
  */
 function ctools_api_ctools_plugin_directory($owner, $plugin_type) {
   return "api/$owner/$plugin_type";
-}
-
-/**
- * Implements hook_ctools_api_plugins_directory().
- */
-function ctools_api_ctools_api_plugins_directory() {
-  // This module provide an unified API for CTools plugins and implements
-  // couple useful plugins as example.
-  return 'plugins';
 }
 
 /**

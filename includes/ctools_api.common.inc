@@ -15,32 +15,26 @@ function ctools_api_search_plugins() {
   $plugins = [];
 
   if (FALSE === $cache || empty($cache->data)) {
-    $hook = 'ctools_api_plugins_directory';
+    foreach (ctools_api_autoloading_paths() as $items) {
+      foreach ($items as $item) {
+        foreach (file_scan_directory($item['path'], '/\.inc$/') as $file) {
+          $class = str_replace('/', '\\', trim(str_replace([$item['path'], '.inc'], '', $file->uri), '/'));
 
-    foreach (module_implements($hook) as $module_name) {
-      $function = $module_name . '_' . $hook;
+          if (!isset($plugins[$class]) && class_exists($class)) {
+            $interfaces = class_implements($class);
 
-      if (function_exists($function)) {
-        $module_path = drupal_get_path('module', $module_name);
-        $sources = $module_path . '/' . $function();
+            if (isset($interfaces['CTools\Plugins\PluginInterface'])) {
+              $reflection = new \ReflectionClass($class);
 
-        ctools_api_register_autoloader_path($sources);
+              if ($reflection->isInstantiable()) {
+                $file->sources = $item['path'];
+                $file->abstract = $reflection->isAbstract();
+                $file->implements = $interfaces;
+                $file->module_name = $item['module']['name'];
+                $file->module_path = $item['module']['path'];
 
-        foreach (file_scan_directory($sources, '/\.inc$/') as $file) {
-          $object = str_replace('/', '\\', trim(str_replace([$sources, '.inc'], '', $file->uri), '/'));
-
-          if (class_exists($object)) {
-            $reflection = new \ReflectionClass($object);
-
-            if ($reflection->isInstantiable()) {
-              $file->object = $object;
-              $file->sources = $sources;
-              $file->abstract = $reflection->isAbstract();
-              $file->implements = drupal_map_assoc($reflection->getInterfaceNames());
-              $file->module_name = $module_name;
-              $file->module_path = $module_path;
-
-              $plugins[] = $file;
+                $plugins[$class] = $file;
+              }
             }
           }
         }
@@ -66,53 +60,79 @@ function ctools_api_search_plugins() {
  *   Plugin definitions.
  */
 function ctools_api_get_plugins($plugin_type) {
-  // Transform "content_types" to "ContentTypes", for example.
-  $namespace = ucfirst(ctools_api_to_camel_case($plugin_type));
+  $cache = cache_get(__FUNCTION__);
   $plugins = [];
 
-  foreach (ctools_api_search_plugins() as $plugin) {
-    ctools_api_register_autoloader_path($plugin->sources);
+  if (FALSE === $cache || empty($cache->data[$plugin_type])) {
+    // Transform "content_types" to "ContentTypes", for example.
+    $type = ucfirst(ctools_api_to_camel_case($plugin_type));
 
-    if (isset($plugin->implements[implode('\\', ['CTools', 'Plugins', $namespace, $namespace . 'Interface'])])) {
-      try {
-        $plugins[$plugin->object] = array_merge((new \CTools\PluginConstructor($plugin->object, $plugin->implements, $plugin_type))->getInfo(), [
-          'name' => "ctools_api:$plugin->object",
-          'path' => dirname($plugin->uri),
-          'file' => $plugin->filename,
-          'object' => $plugin->object,
-          'sources' => $plugin->sources,
-          'location' => $plugin->uri,
-          'plugin type' => $plugin_type,
-          'plugin module' => $plugin->module_name,
-          'plugin module path' => $plugin->module_path,
-        ]);
-      }
-      catch (\Exception $e) {
-        watchdog_exception(CTOOLS_API_MODULE_TITLE, $e);
+    foreach (ctools_api_search_plugins() as $class => $plugin) {
+      if (isset($plugin->implements[implode('\\', ['CTools', 'Plugins', $type, $type . 'Interface'])])) {
+        try {
+          $plugins[$class] = array_merge((new \CTools\PluginConstructor($class, $plugin->implements, $plugin_type))->getInfo(), [
+            'name' => "ctools_api:$class",
+            'path' => dirname($plugin->uri),
+            'file' => $plugin->filename,
+            'object' => $class,
+            'sources' => $plugin->sources,
+            'location' => $plugin->uri,
+            'plugin type' => $plugin_type,
+            'plugin module' => $plugin->module_name,
+            'plugin module path' => $plugin->module_path,
+          ]);
+        }
+        catch (\Exception $e) {
+          watchdog_exception(CTOOLS_API_MODULE_TITLE, $e);
+        }
       }
     }
+
+    cache_set(__FUNCTION__, [$plugin_type => $plugins]);
+  }
+  else {
+    $plugins = $cache->data[$plugin_type];
   }
 
   return $plugins;
 }
 
 /**
- * Register objects loader.
+ * Collect autoloading maps.
  *
- * @param string $path
- *   Path to directory with objects.
- *
- * @return string[]
- *   Paths to plugin sources.
+ * @return array[]
+ *   An array of arrays, keyed by base of the namespace.
  */
-function ctools_api_register_autoloader_path($path = '') {
-  static $paths = [];
+function ctools_api_autoloading_paths() {
+  $map =& drupal_static(__FUNCTION__, []);
 
-  if (!empty($path) && !isset($paths[$path])) {
-    $paths[$path] = $path;
+  if (empty($map)) {
+    foreach (system_list('module_enabled') as $module_name => $data) {
+      if (!empty($data->info['autoload'])) {
+        $module_path = dirname($data->filename);
+
+        foreach ($data->info['autoload'] as $subdirectory => $bases) {
+          $path = $module_path;
+
+          if (!empty($subdirectory)) {
+            $path .= "/$subdirectory";
+          }
+
+          foreach ($bases as $base) {
+            $map[$base][] = [
+              'path' => $path,
+              'module' => [
+                'name' => $module_name,
+                'path' => $module_path,
+              ],
+            ];
+          }
+        }
+      }
+    }
   }
 
-  return $paths;
+  return $map;
 }
 
 /**
