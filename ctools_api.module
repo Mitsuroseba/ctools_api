@@ -16,16 +16,17 @@ require_once 'includes/plugin_types/ctools/access.inc';
 // Include API for "content_types" plugins provided by CTools.
 require_once 'includes/plugin_types/ctools/content_types.inc';
 
-spl_autoload_register(function ($namespace) {
+$autoloading_paths = ctools_api_autoloading_paths();
+
+spl_autoload_register(function ($namespace) use ($autoloading_paths) {
   list($base) = explode('\\', $namespace);
-  $map = ctools_api_autoloading_paths();
 
   // @codingStandardsIgnoreStart
-  if (!empty($map[$base])) {
+  if (!empty($autoloading_paths[$base])) {
     $relative = str_replace('\\', '/', $namespace);
 
-    foreach ($map[$base] as $item) {
-      $file = $item['path'] . "/$relative.inc";
+    foreach ($autoloading_paths[$base] as $path => $module) {
+      $file = "$path/$relative.inc";
 
       if (file_exists($file)) {
         require_once $file;
@@ -35,22 +36,6 @@ spl_autoload_register(function ($namespace) {
   }
   // @codingStandardsIgnoreEnd
 });
-
-/**
- * Implements hook_menu().
- */
-function ctools_api_menu() {
-  $routes = [];
-
-  $routes['ctools_api/get_fid_by_uri'] = [
-    'type' => MENU_CALLBACK,
-    'file' => 'includes/ctools_api.pages.inc',
-    'page callback' => '_ctools_api_get_fid_by_uri',
-    'access arguments' => ['access content'],
-  ];
-
-  return $routes;
-}
 
 /**
  * Implements hook_menu_alter().

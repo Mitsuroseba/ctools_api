@@ -5,6 +5,41 @@
  */
 
 /**
+ * Collect autoloading maps.
+ *
+ * @return array[]
+ *   An array of arrays, keyed by base of the namespace.
+ */
+function ctools_api_autoloading_paths() {
+  $map =& drupal_static(__FUNCTION__, []);
+
+  if (empty($map)) {
+    foreach (system_list('module_enabled') as $module_name => $data) {
+      if (!empty($data->info['autoload'])) {
+        $module_path = dirname($data->filename);
+
+        foreach ($data->info['autoload'] as $subdirectory => $bases) {
+          $path = $module_path;
+
+          if (!empty($subdirectory)) {
+            $path .= "/$subdirectory";
+          }
+
+          foreach ($bases as $base) {
+            $map[$base][$path] = [
+              'name' => $module_name,
+              'path' => $module_path,
+            ];
+          }
+        }
+      }
+    }
+  }
+
+  return $map;
+}
+
+/**
  * Scan modules for CTools API plugins.
  *
  * @return \stdClass[]
@@ -15,10 +50,10 @@ function ctools_api_search_plugins() {
   $plugins = [];
 
   if (FALSE === $cache || empty($cache->data)) {
-    foreach (ctools_api_autoloading_paths() as $items) {
-      foreach ($items as $item) {
-        foreach (file_scan_directory($item['path'], '/\.inc$/') as $file) {
-          $class = str_replace('/', '\\', trim(str_replace([$item['path'], '.inc'], '', $file->uri), '/'));
+    foreach (ctools_api_autoloading_paths() as $base => $modules) {
+      foreach ($modules as $path => $module) {
+        foreach (file_scan_directory($path, '/\.inc$/') as $file) {
+          $class = str_replace('/', '\\', trim(str_replace([$path, '.inc'], '', $file->uri), '/'));
 
           if (!isset($plugins[$class]) && class_exists($class)) {
             $interfaces = class_implements($class);
@@ -27,11 +62,11 @@ function ctools_api_search_plugins() {
               $reflection = new \ReflectionClass($class);
 
               if ($reflection->isInstantiable()) {
-                $file->sources = $item['path'];
+                $file->sources = $path;
                 $file->abstract = $reflection->isAbstract();
                 $file->implements = $interfaces;
-                $file->module_name = $item['module']['name'];
-                $file->module_path = $item['module']['path'];
+                $file->module_name = $module['name'];
+                $file->module_path = $module['path'];
 
                 $plugins[$class] = $file;
               }
@@ -95,44 +130,6 @@ function ctools_api_get_plugins($plugin_type) {
   }
 
   return $plugins;
-}
-
-/**
- * Collect autoloading maps.
- *
- * @return array[]
- *   An array of arrays, keyed by base of the namespace.
- */
-function ctools_api_autoloading_paths() {
-  $map =& drupal_static(__FUNCTION__, []);
-
-  if (empty($map)) {
-    foreach (system_list('module_enabled') as $module_name => $data) {
-      if (!empty($data->info['autoload'])) {
-        $module_path = dirname($data->filename);
-
-        foreach ($data->info['autoload'] as $subdirectory => $bases) {
-          $path = $module_path;
-
-          if (!empty($subdirectory)) {
-            $path .= "/$subdirectory";
-          }
-
-          foreach ($bases as $base) {
-            $map[$base][] = [
-              'path' => $path,
-              'module' => [
-                'name' => $module_name,
-                'path' => $module_path,
-              ],
-            ];
-          }
-        }
-      }
-    }
-  }
-
-  return $map;
 }
 
 /**
