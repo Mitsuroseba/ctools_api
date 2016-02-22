@@ -93,6 +93,10 @@ function _ctools_api_panels_flexible_render_item(\stdClass $renderer, array $ite
   if (!empty($renderer->admin)) {
     $output .= panels_flexible_render_item_links($renderer, $id, $item);
   }
+  
+  if (!empty($item['class'])) {
+    $content = '<div class="' . $item['class'] . '">' . $content . '</div>';
+  }
 
   $output .= $content;
 
