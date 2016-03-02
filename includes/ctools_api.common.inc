@@ -433,8 +433,6 @@ function ctools_api_plugin_base_configuration_form(array &$form, array &$form_st
     }
 
     $form += ctools_api_plugin_base_configuration_form_process($items, $form_state, $form_state['input'], $plugin);
-    // Store all parent elements.
-    $form_state['#elements'] = array_keys($items);
     // Attach the file with plugin definition to the form to be
     // sure that everything will be okay on rebuilding state.
     $form_state['build_info']['files']['ctools_api'] = $plugin['location'];
@@ -471,13 +469,19 @@ function ctools_api_plugin_base_configuration_form(array &$form, array &$form_st
  *   Values from configuration form.
  * @param array $plugin
  *   Plugin definition information.
+ * @param bool $add_to_tree
+ *   Indicate that element should be added to list or not.
  *
  * @return array
  *   Processed items.
  */
-function ctools_api_plugin_base_configuration_form_process(array $items, array &$form_state, array $conf, array $plugin) {
+function ctools_api_plugin_base_configuration_form_process(array $items, array &$form_state, array $conf, array $plugin, $add_to_tree = TRUE) {
   foreach ($items as $name => &$element) {
     $type = isset($element['#type']) ? $element['#type'] : '';
+
+    if ($add_to_tree) {
+      $form_state['#elements'][] = $name;
+    }
 
     // Allow "#ajax => TRUE".
     if (isset($element['#ajax'])) {
@@ -547,7 +551,7 @@ function ctools_api_plugin_base_configuration_form_process(array $items, array &
     foreach (element_children($element) as $child) {
       // Re-run processing only for elements.
       if (is_array($element[$child])) {
-        $data = call_user_func_array(__FUNCTION__, [[$child => $element[$child]], &$form_state, $conf_child, $plugin]);
+        $data = call_user_func_array(__FUNCTION__, [[$child => $element[$child]], &$form_state, $conf_child, $plugin, empty($element['#tree'])]);
         $element[$child] = reset($data);
       }
     }
