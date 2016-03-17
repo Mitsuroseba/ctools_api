@@ -61,10 +61,6 @@ class Collection {
       $values = [[]];
     }
 
-    uasort($values, 'drupal_sort_weight');
-    // Reset keys because value setter does not pay attention to order in array.
-    $values = array_values($values);
-
     // Walk through the collection items.
     foreach ($values as $i => $value) {
       $items = $process($i, $value);

@@ -715,6 +715,15 @@ function ctools_api_plugin_base_configuration_form_process_specific_elements_sub
   foreach (element_children($element) as $child) {
     call_user_func_array(__FUNCTION__, [$element[$child], &$form_state]);
   }
+
+  // Post Process collections.
+  // @see \CTools\Plugins\ContentTypes\Form\Elements\Collection
+  if (isset($element['#subtype'], $element['#id']) && 'collection' === $element['#subtype'] && !empty($once[$element['#id']])) {
+    $items =& drupal_array_get_nested_value($form_state['values'], $element['#parents']);
+
+    uasort($items, 'drupal_sort_weight');
+    $items = array_values($items);
+  }
 }
 
 /**
