@@ -61,6 +61,10 @@ class Collection {
       $values = [[]];
     }
 
+    uasort($values, 'drupal_sort_weight');
+    // Reset keys because value setter does not pay attention to order in array.
+    $values = array_values($values);
+
     // Walk through the collection items.
     foreach ($values as $i => $value) {
       $items = $process($i, $value);
@@ -81,6 +85,13 @@ class Collection {
       }
 
       if ('table' === $element['#type']) {
+        $table_id = 'table_' . self::TYPE . '_' . $name;
+        $table_weight_class = 'panel-weight';
+
+        $element['#attributes']['id'] = $table_id;
+
+        drupal_add_tabledrag($table_id, 'order', 'sibling', $table_weight_class);
+
         // Remove titles from elements and set them to table cells.
         foreach ($children as $td) {
           // Extend an item with an #access property. If it absent - Drupal
@@ -96,8 +107,22 @@ class Collection {
           unset($items[$td]['#title']);
         }
 
-        // Add the "Remove" button to each row.
+        // Add header for special columns.
         $element['#header']['_operations'] = t('Operations');
+        $element['#header']['weight'] = t('Weight');
+
+        $items['weight'] = [
+          '#type' => 'weight',
+          '#default_value' => $value['weight'],
+          '#delta' => 10,
+          '#title-display' => 'invisible',
+          '#attributes' => [
+            'class' => [$table_weight_class],
+          ],
+        ];
+        $items['#attributes'] = [
+          'class' => ['draggable'],
+        ];
       }
 
       // Could be "fieldset" or "table".
