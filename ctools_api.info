@@ -1,7 +1,7 @@
 name = CTools API
 description = OOP abstraction layer for CTools plugins
 core = 7.x
-php = 5.4
+php = 5.5
 
 autoload[plugins][] = CTools
 autoload[includes][] = CTools
@@ -9,5 +9,6 @@ autoload[includes][] = CTools
 dependencies[] = image
 dependencies[] = ctools
 dependencies[] = panels
+dependencies[] = autoload
 dependencies[] = managed_file
 dependencies[] = table_element

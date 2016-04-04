@@ -16,27 +16,6 @@ require_once 'includes/plugin_types/ctools/access.inc';
 // Include API for "content_types" plugins provided by CTools.
 require_once 'includes/plugin_types/ctools/content_types.inc';
 
-$autoloading_paths = ctools_api_autoloading_paths();
-
-spl_autoload_register(function ($namespace) use ($autoloading_paths) {
-  list($base) = explode('\\', $namespace);
-
-  // @codingStandardsIgnoreStart
-  if (!empty($autoloading_paths[$base])) {
-    $relative = str_replace('\\', '/', $namespace);
-
-    foreach ($autoloading_paths[$base] as $path => $module) {
-      $file = "$path/$relative.inc";
-
-      if (file_exists($file)) {
-        require_once $file;
-        break;
-      }
-    }
-  }
-  // @codingStandardsIgnoreEnd
-});
-
 /**
  * Implements hook_menu_alter().
  */
