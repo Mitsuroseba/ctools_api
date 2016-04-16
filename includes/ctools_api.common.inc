@@ -707,7 +707,7 @@ function ctools_api_plugin_base_configuration_form_process_specific_elements_sub
     $once[$element['#id']] = TRUE;
   }
 
-  // Process collections.
+  // Process the collections.
   // @see \CTools\Plugins\ContentTypes\Form\Elements\Collection
   if (isset($element['#subtype'], $element['#id']) && 'collection' === $element['#subtype'] && empty($once[$element['#id']])) {
     $items =& drupal_array_get_nested_value($form_state['values'], $element['#parents']);
@@ -719,6 +719,8 @@ function ctools_api_plugin_base_configuration_form_process_specific_elements_sub
 
     // Remove empty items.
     $items = array_filter($items);
+    uasort($items, 'drupal_sort_weight');
+    $items = array_values($items);
 
     $once[$element['#id']] = TRUE;
   }

@@ -65,7 +65,8 @@
     background: $border-color;
     &.collection {
       .form-text, .form-select {
-        width: 100%;
+        // Collection's row has a "draggable" icon with width in 25px.
+        width: calc(100% - 25px);
       }
     }
   }

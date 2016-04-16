@@ -98,10 +98,14 @@ class Collection {
 
         // Add the "Remove" button to each row.
         $element['#header']['_operations'] = t('Operations');
+        $element['#header']['_weight'] = t('Weight');
+        $element['#attributes']['id'] = sprintf('table_%s_%', self::TYPE, $name);
+
+        drupal_add_tabledrag($element['#attributes']['id'], 'order', 'sibling', 'panel-weight');
       }
 
       // Could be "fieldset" or "table".
-      $element['#attributes']['class'][] = $element['#type'] . '-collection';
+      $element['#attributes']['class'][] = $element['#type'] . '-' . self::TYPE;
 
       $items['_operations'] = [
         '#type' => 'items',
@@ -119,6 +123,20 @@ class Collection {
         '#value' => static::$buttonTexts['remove'],
         '#operation' => 'remove',
         '#limit_validation_errors' => [],
+      ];
+
+      $items['weight'] = [
+        '#type' => 'weight',
+        '#delta' => 10,
+        '#default_value' => $value['weight'],
+        '#title-display' => 'invisible',
+        '#attributes' => [
+          'class' => ['panel-weight'],
+        ],
+      ];
+
+      $items['#attributes'] = [
+        'class' => ['draggable'],
       ];
 
       $element[] = $items;
