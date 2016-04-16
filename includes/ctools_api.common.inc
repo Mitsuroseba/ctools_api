@@ -331,15 +331,6 @@ function ctools_api_plugin_base_configuration_form(array &$form, array &$form_st
   if (!empty($plugin) && class_exists($plugin['object'])) {
     $items = [];
 
-    // @todo Remove in a future release.
-//    // Collect all file names of parent classes. This is necessary, because
-//    // the form will not know anything about files with classes after
-//    // obtaining from cache.
-//    while ($reflection = (new \ReflectionClass($plugin['object']))->getParentClass()) {
-//      $file = trim(str_replace(DRUPAL_ROOT, '', $reflection->getFileName()), '/');
-//      $form_state['build_info']['files'][$file] = $file;
-//    }
-
     $form_state['contexts'] = ctools_api_display_contexts($form_state['display']);
     $form_state['input'] = array_merge($form_state['conf'], $form_state['input']);
     // Add default theme variant (if not exist) to configuration.
