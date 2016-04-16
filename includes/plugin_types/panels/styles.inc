@@ -20,7 +20,7 @@ function ctools_api_styles(array &$information, array $interfaces) {
     }
   }
 
-  // Prevent creation of additional theme suggestions.
+  // Prevent creation additional theme suggestions.
   // @see panels_theme()
   unset($information['hook theme']);
 }
@@ -34,7 +34,12 @@ function theme_ctools_api_styles_base_render_region(array $variables) {
   $plugin = $variables['style'];
   $conf =& $variables['settings'];
 
-  $plugin['object']::preprocess($variables['display'], $conf, $variables);
+  $plugin['object']::preprocess(
+    $variables['display'],
+    $conf,
+    $variables,
+    ctools_api_styles_display_contexts($variables['display'], $plugin, $conf)
+  );
 
   return ctools_api_apply_theme($plugin['object'], $conf, $plugin, $variables);
 }
@@ -76,7 +81,12 @@ function theme_ctools_api_styles_base_render_pane(array $variables) {
     $content->title = '';
   }
 
-  $plugin['object']::preprocess($content, $conf, $variables);
+  $plugin['object']::preprocess(
+    $content,
+    $conf,
+    $variables,
+    ctools_api_styles_display_contexts($variables['display'], $plugin, $conf)
+  );
 
   return ctools_api_apply_theme($plugin['object'], $conf, $plugin, $variables);
 }
@@ -92,4 +102,23 @@ function ctools_api_styles_base_settings_form($settings, $display, $pid, $type, 
   ctools_api_plugin_base_configuration_form($items, $form_state);
 
   return $items;
+}
+
+/**
+ * Select configured contexts.
+ *
+ * @param \panels_display $display
+ *   Panels display object.
+ * @param array $plugin
+ *   Plugin definition.
+ * @param array $conf
+ *   Plugin settings.
+ *
+ * @return \CTools\PluginContexts
+ *   An instance of plugin contexts object.
+ */
+function ctools_api_styles_display_contexts(\panels_display $display, array $plugin, array $conf) {
+  return new \CTools\PluginContexts(
+    ctools_context_select(ctools_api_display_contexts($display), $plugin['required context'], $conf['context'])
+  );
 }

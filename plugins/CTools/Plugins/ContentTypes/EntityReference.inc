@@ -6,6 +6,7 @@
 
 namespace CTools\Plugins\ContentTypes;
 
+use CTools\PluginContexts;
 use CTools\Form\Elements;
 
 /**
@@ -13,7 +14,7 @@ use CTools\Form\Elements;
  *
  * @package CTools\Plugins\ContentTypes
  */
-class EntityReference implements ContentTypesInterface {
+class EntityReference extends ContentTypesPlugin {
 
   /**
    * {@inheritdoc}
@@ -25,17 +26,10 @@ class EntityReference implements ContentTypesInterface {
   /**
    * {@inheritdoc}
    */
-  public static function info() {
+  public static function contexts() {
     return [
-      'required context' => new \ctools_context_optional(t('Context'), 'any'),
+      new \ctools_context_optional(t('Context'), 'any'),
     ];
-  }
-
-  /**
-   * {@inheritdoc}
-   */
-  public static function themeVariants() {
-    return [];
   }
 
   /**
@@ -48,19 +42,20 @@ class EntityReference implements ContentTypesInterface {
   /**
    * {@inheritdoc}
    */
-  public static function preprocess(array &$variables, array &$arguments, \ctools_context $context = NULL) {
+  public static function preprocess(array &$variables, array &$arguments, PluginContexts $contexts) {
 
   }
 
   /**
    * {@inheritdoc}
    */
-  public static function configurationForm(array &$form, array &$form_state, array &$conf) {
-    if (isset($form_state['contexts'][$conf['context']])) {
-      $context = $form_state['contexts'][$conf['context']];
+  public static function configurationForm(array &$form, array &$form_state, array &$conf, PluginContexts $contexts) {
+    // "0" is any selected context.
+    if ($contexts->has($conf['context'][0])) {
+      $context_info = $contexts->get($conf['context'][0])->info();
 
       foreach ($conf['references'] as &$item) {
-        $item['entity_type'] = $context->keyword;
+        $item['entity_type'] = $context_info->keyword;
       }
     }
 
@@ -70,21 +65,14 @@ class EntityReference implements ContentTypesInterface {
   /**
    * {@inheritdoc}
    */
-  public static function configurationFormValidate(array &$form, array &$form_state, array &$values) {
+  public static function configurationFormElementCallback(array &$form, array &$form_state, array &$conf, PluginContexts $contexts, array &$commands, array $element) {
+    // Clean reference value when context changed.
+    if ('context' === reset($element['#parents'])) {
+      foreach (element_children($form['references']) as $child) {
+        unset($form['references'][$child]['reference']['#value']);
+      }
+    }
 
-  }
-
-  /**
-   * {@inheritdoc}
-   */
-  public static function configurationFormSubmit(array &$form, array &$form_state, array &$conf) {
-
-  }
-
-  /**
-   * {@inheritdoc}
-   */
-  public static function configurationFormElementCallback(array &$form, array &$form_state, array &$conf, array &$commands, array $element) {
     // Process only when AJAX occurred on element from "references".
     if ('references' === reset($element['#parents'])) {
       // Remove field name from parents to be able obtain full row.

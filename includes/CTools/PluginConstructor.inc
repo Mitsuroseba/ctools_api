@@ -13,6 +13,7 @@ namespace CTools;
  * @method string name()
  * @method string[] dependencies()
  * @method string[] themeVariants()
+ * @method \ctools_context[] contexts()
  *
  * @package CTools
  */
@@ -64,7 +65,8 @@ class PluginConstructor {
     $this
       ->validateDependencies()
       ->callTypeConstructor()
-      ->generateThemeHooks();
+      ->generateThemeHooks()
+      ->processContexts();
   }
 
   /**
@@ -133,6 +135,34 @@ class PluginConstructor {
     /* @param array $information Basic plugin information. */
     /* @param string[] $interfaces Implemented interfaces */
     $constructor($this->info, $this->implements);
+
+    return $this;
+  }
+
+  /**
+   * Process plugin contexts.
+   */
+  private function processContexts() {
+    $contexts = $this->contexts();
+
+    if (NULL === $contexts) {
+      $contexts = [];
+    }
+
+    if (!is_array($contexts)) {
+      throw new \UnexpectedValueException(t('An array of @type objects must be returned by @method.', [
+        '@type' => '\ctools_context',
+        '@method' => "$this->object::contexts()",
+      ]));
+    }
+
+    if (!empty($contexts) && !empty(array_filter(array_keys($contexts), 'is_string'))) {
+      throw new \UnexpectedValueException(t('Numeric array must be returned by @method.', [
+        '@method' => "$this->object::contexts()",
+      ]));
+    }
+
+    $this->info['required context'] = $contexts;
 
     return $this;
   }

@@ -6,12 +6,16 @@
 
 namespace CTools\Plugins\Styles;
 
+use CTools\PluginContexts;
+
 /**
  * Class CustomizablePane.
  *
  * @package CTools\Plugins\Styles
  */
-class CustomizablePane extends Customizable implements StylesPaneInterface {
+class CustomizablePane extends StylesPanePlugin {
+
+  use Customizable;
 
   /**
    * {@inheritdoc}
@@ -23,7 +27,7 @@ class CustomizablePane extends Customizable implements StylesPaneInterface {
   /**
    * {@inheritdoc}
    */
-  public static function preprocess(\stdClass $content, array &$settings, array &$variables) {
+  public static function preprocess(\stdClass $content, array &$settings, array &$variables, PluginContexts $contexts) {
     foreach (['wrapper', 'title', 'content'] as $name) {
       self::processSettings(['info', $name], $settings);
     }
@@ -39,7 +43,7 @@ class CustomizablePane extends Customizable implements StylesPaneInterface {
   /**
    * {@inheritdoc}
    */
-  public static function configurationForm(array &$form, array &$form_state, array &$conf) {
+  public static function configurationForm(array &$form, array &$form_state, array &$conf, PluginContexts $contexts) {
     $content_tags = [
       'section',
       'article',

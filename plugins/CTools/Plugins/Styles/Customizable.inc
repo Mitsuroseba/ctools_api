@@ -9,53 +9,11 @@ namespace CTools\Plugins\Styles;
 use CTools\Form;
 
 /**
- * Class Customizable.
+ * Trait Customizable.
  *
  * @package CTools\Plugins\Styles
  */
-abstract class Customizable implements StylesInterface {
-
-  /**
-   * {@inheritdoc}
-   */
-  public static function info() {
-    return [];
-  }
-
-  /**
-   * {@inheritdoc}
-   */
-  public static function themeVariants() {
-    return [];
-  }
-
-  /**
-   * {@inheritdoc}
-   */
-  public static function dependencies() {
-    return [];
-  }
-
-  /**
-   * {@inheritdoc}
-   */
-  public static function configurationFormValidate(array &$form, array &$form_state, array &$values) {
-
-  }
-
-  /**
-   * {@inheritdoc}
-   */
-  public static function configurationFormSubmit(array &$form, array &$form_state, array &$conf) {
-
-  }
-
-  /**
-   * {@inheritdoc}
-   */
-  public static function configurationFormElementCallback(array &$form, array &$form_state, array &$conf, array &$commands, array $element) {
-
-  }
+trait Customizable {
 
   /**
    * Process settings.

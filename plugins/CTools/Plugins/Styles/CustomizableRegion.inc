@@ -6,12 +6,16 @@
 
 namespace CTools\Plugins\Styles;
 
+use CTools\PluginContexts;
+
 /**
  * Class CustomizableRegion.
  *
  * @package CTools\Plugins\Styles
  */
-class CustomizableRegion extends Customizable implements StylesRegionInterface {
+class CustomizableRegion extends StylesRegionPlugin {
+
+  use Customizable;
 
   /**
    * {@inheritdoc}
@@ -23,14 +27,14 @@ class CustomizableRegion extends Customizable implements StylesRegionInterface {
   /**
    * {@inheritdoc}
    */
-  public static function preprocess(\panels_display $display, array &$settings, array &$variables) {
+  public static function preprocess(\panels_display $display, array &$settings, array &$variables, PluginContexts $contexts) {
     self::processSettings([], $settings);
   }
 
   /**
    * {@inheritdoc}
    */
-  public static function configurationForm(array &$form, array &$form_state, array &$conf) {
+  public static function configurationForm(array &$form, array &$form_state, array &$conf, PluginContexts $contexts) {
     self::formItem([], $form, $form_state, $conf, [
       'div',
       'main',

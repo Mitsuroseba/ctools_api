@@ -329,20 +329,23 @@ function ctools_api_plugin_base_configuration_form(array &$form, array &$form_st
   $plugin = ctools_api_form_state_get_plugin($form_state);
 
   if (!empty($plugin) && class_exists($plugin['object'])) {
-    $reflection = new \ReflectionClass($plugin['object']);
     $items = [];
 
-    // Collect all file names of parent classes. This is necessary, because
-    // the form will not know anything about files with classes after
-    // obtaining from cache.
-    while ($reflection = $reflection->getParentClass()) {
-      $file = trim(str_replace(DRUPAL_ROOT, '', $reflection->getFileName()), '/');
-      $form_state['build_info']['files'][$file] = $file;
-    }
+    // @todo Remove in a future release.
+//    // Collect all file names of parent classes. This is necessary, because
+//    // the form will not know anything about files with classes after
+//    // obtaining from cache.
+//    while ($reflection = (new \ReflectionClass($plugin['object']))->getParentClass()) {
+//      $file = trim(str_replace(DRUPAL_ROOT, '', $reflection->getFileName()), '/');
+//      $form_state['build_info']['files'][$file] = $file;
+//    }
 
+    $form_state['contexts'] = ctools_api_display_contexts($form_state['display']);
     $form_state['input'] = array_merge($form_state['conf'], $form_state['input']);
     // Add default theme variant (if not exist) to configuration.
     $form_state['input'] += ['theme' => 'default'];
+    $form_state['input'] += ['context' => []];
+
     $form['#attributes']['class'][] = 'variant-' . $form_state['input']['theme'];
 
     if (isset($form_state['triggering_element'])) {
@@ -383,7 +386,7 @@ function ctools_api_plugin_base_configuration_form(array &$form, array &$form_st
       }
     }
 
-    $plugin['object']::configurationForm($items, $form_state, $form_state['input']);
+    $plugin['object']::configurationForm($items, $form_state, $form_state['input'], new \CTools\PluginContexts($form_state['contexts']));
 
     if (!empty($plugin['theme variants'])) {
       $items = array_merge([
@@ -480,6 +483,7 @@ function ctools_api_plugin_base_configuration_form_process(array $items, array &
 
         $element = array_merge($element, ctools_api_element_prefix('link', $element), [
           '#tree' => TRUE,
+          '#link_field' => TRUE,
           'title' => [
             '#type' => 'textfield',
             '#title' => $titles['title'],
@@ -548,6 +552,7 @@ function ctools_api_plugin_base_configuration_form_ajax(array $form, array &$for
     $form,
     $form_state,
     $form_state['values'],
+    new \CTools\PluginContexts($form_state['contexts']),
     $commands,
     $form_state['triggering_element']
   );
@@ -573,7 +578,7 @@ function ctools_api_plugin_base_configuration_form_validate(array $form, array &
   $plugin = ctools_api_form_state_get_plugin($form_state);
 
   if (isset($plugin['object'])) {
-    $plugin['object']::configurationFormValidate($form, $form_state, $form_state['values']);
+    $plugin['object']::configurationFormValidate($form, $form_state, $form_state['values'], new \CTools\PluginContexts($form_state['contexts']));
   }
 }
 
@@ -595,7 +600,7 @@ function ctools_api_plugin_base_configuration_form_submit(array $form, array &$f
       }
     }
 
-    $plugin['object']::configurationFormSubmit($form, $form_state, $form_state['conf']);
+    $plugin['object']::configurationFormSubmit($form, $form_state, $form_state['conf'], new \CTools\PluginContexts($form_state['contexts']));
 
     // @see ctools_api_form_alter()
     if (!empty($form_state['#nested_required'])) {
@@ -639,6 +644,29 @@ function ctools_api_panels_flexible_add_item_form_submit(array $form, array &$fo
 }
 
 /**
+ * Get all contexts for display.
+ *
+ * @param \panels_display $display
+ *   Panels display object.
+ *
+ * @return \ctools_context[]
+ *   Display context objects.
+ */
+function ctools_api_display_contexts(\panels_display $display) {
+  $contexts = [];
+
+  if (!empty($display->context)) {
+    $contexts = $display->context;
+  }
+
+  if (!isset($contexts['logged-in-user'])) {
+    $contexts['logged-in-user'] = ctools_access_get_loggedin_context();
+  }
+
+  return $contexts;
+}
+
+/**
  * Recursive processing for specific form elements (e.g. "managed_file").
  *
  * @internal
@@ -657,6 +685,17 @@ function ctools_api_plugin_base_configuration_form_process_specific_elements_sub
     managed_file_element_submit($element, $form_state, ['ctools_api', 'user', $user->uid]);
 
     $once[$element['#name']] = TRUE;
+  }
+
+  // Process link field.
+  if (isset($element['#link_field'], $element['#id']) && empty($once[$element['#id']])) {
+    $items =& drupal_array_get_nested_value($form_state['values'], $element['#parents']);
+
+    foreach (['url' => 'check_url', 'title' => 'check_plain'] as $item => $function) {
+      $items[$item] = $function($items[$item]);
+    }
+
+    $once[$element['#id']] = TRUE;
   }
 
   // Process collections.

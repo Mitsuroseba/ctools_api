@@ -6,6 +6,8 @@
 
 namespace CTools\Plugins\Styles;
 
+use CTools\PluginContexts;
+
 /**
  * Interface StylesPaneInterface.
  *
@@ -22,7 +24,9 @@ interface StylesPaneInterface extends StylesInterface {
    *   Values from configuration form.
    * @param array $variables
    *   All available variables (including "settings" and "content").
+   * @param PluginContexts $contexts
+   *   Plugin contexts. @see ContextualPluginInterface::contexts()
    */
-  public static function preprocess(\stdClass $content, array &$settings, array &$variables);
+  public static function preprocess(\stdClass $content, array &$settings, array &$variables, PluginContexts $contexts);
 
 }

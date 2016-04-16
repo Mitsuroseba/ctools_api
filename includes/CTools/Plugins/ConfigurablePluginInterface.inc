@@ -6,6 +6,8 @@
 
 namespace CTools\Plugins;
 
+use CTools\PluginContexts;
+
 /**
  * Interface ConfigurablePluginInterface.
  *
@@ -23,8 +25,10 @@ interface ConfigurablePluginInterface extends PluginInterface {
    *   Drupal form state.
    * @param array $conf
    *   Saved configuration values.
+   * @param PluginContexts $contexts
+   *   Plugin contexts. @see ContextualPluginInterface::contexts()
    */
-  public static function configurationForm(array &$form, array &$form_state, array &$conf);
+  public static function configurationForm(array &$form, array &$form_state, array &$conf, PluginContexts $contexts);
 
   /**
    * Validate form submission.
@@ -35,8 +39,10 @@ interface ConfigurablePluginInterface extends PluginInterface {
    *   Drupal form state.
    * @param array $values
    *   Values from the form elements which will be saved.
+   * @param PluginContexts $contexts
+   *   Plugin contexts. @see ContextualPluginInterface::contexts()
    */
-  public static function configurationFormValidate(array &$form, array &$form_state, array &$values);
+  public static function configurationFormValidate(array &$form, array &$form_state, array &$values, PluginContexts $contexts);
 
   /**
    * Submission callback for configuration form.
@@ -47,8 +53,10 @@ interface ConfigurablePluginInterface extends PluginInterface {
    *   Drupal form state.
    * @param array $conf
    *   Saved configuration values.
+   * @param PluginContexts $contexts
+   *   Plugin contexts. @see ContextualPluginInterface::contexts()
    */
-  public static function configurationFormSubmit(array &$form, array &$form_state, array &$conf);
+  public static function configurationFormSubmit(array &$form, array &$form_state, array &$conf, PluginContexts $contexts);
 
   /**
    * Dispatcher for AJAX callbacks.
@@ -61,11 +69,13 @@ interface ConfigurablePluginInterface extends PluginInterface {
    *   Drupal form state.
    * @param array $conf
    *   Saved configuration values.
+   * @param PluginContexts $contexts
+   *   Plugin contexts. @see ContextualPluginInterface::contexts()
    * @param array $commands
    *   Collection of AJAX commands.
    * @param array $element
    *   Triggering element.
    */
-  public static function configurationFormElementCallback(array &$form, array &$form_state, array &$conf, array &$commands, array $element);
+  public static function configurationFormElementCallback(array &$form, array &$form_state, array &$conf, PluginContexts $contexts, array &$commands, array $element);
 
 }

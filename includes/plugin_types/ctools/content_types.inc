@@ -47,7 +47,7 @@ function ctools_api_ctools_api_content_type_admin_info($content_type, array $con
  *
  * @see ctools_content_render()
  */
-function ctools_api_ctools_api_content_type_render($content_type, array $conf, array $args, \ctools_context $context = NULL) {
+function ctools_api_ctools_api_content_type_render($content_type, array $conf, array $args, $context = NULL) {
   $plugin = ctools_content_get_subtype('ctools_api', $content_type);
   $block = new \stdClass();
 
@@ -57,7 +57,7 @@ function ctools_api_ctools_api_content_type_render($content_type, array $conf, a
   $block->content = '';
 
   if (!empty($plugin) && class_exists($plugin['object'])) {
-    $plugin['object']::preprocess($conf, $args, $context);
+    $plugin['object']::preprocess($conf, $args, new \CTools\PluginContexts($context));
 
     $block->content = ctools_api_apply_theme($content_type, $conf, $plugin, [
       'content' => $conf,

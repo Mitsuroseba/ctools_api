@@ -27,12 +27,10 @@ interface PluginInterface {
    *
    * @return string[]
    *   For "content_types":
-   *   - 'category' => <string>,
-   *   - 'top level' => <bool>,
-   *   - 'required context' => <\ctools_context|\ctools_context[]>,
+   *     - 'category' => <string>,
+   *     - 'top level' => <bool>,
    *   For "access":
-   *   - 'description' => <string>,
-   *   - 'required context' => <\ctools_context|\ctools_context[]>,
+   *     - 'description' => <string>,
    */
   public static function info();
 

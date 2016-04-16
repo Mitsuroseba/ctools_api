@@ -138,18 +138,35 @@ function ctools_api_form_alter(array &$form, array &$form_state, $form_id) {
         unset($form['settings']);
       }
 
-      // Be able to update form after changing the context.
-      if (isset($form['context'])) {
-        $form['context'] = array_merge($form['context'], [
-          // Needed to be empty for triggering AJAX callback on changing.
-          '#default_value' => isset($form_state['conf']['context']) ? $form_state['conf']['context'] : 'empty',
+      $contexts = isset($form_state['conf']['context']) ? $form_state['conf']['context'] : [];
+
+      $form['context'] = [
+        '#tree' => TRUE,
+        '#weight' => -10000,
+      ];
+
+      /* @var \ctools_context $context */
+      foreach ($plugin['required context'] as $i => $context_definition) {
+        $element = [
+          '#type' => 'select',
+          '#title' => $context_definition->title,
+          // Need to check for emptiness, because a value might be
+          // an empty string.
+          '#default_value' => empty($contexts[$i]) ? 'empty' : $contexts[$i],
           // @see ctools_api_plugin_base_configuration_form_process()
           '#ajax' => [
             // Wrapper is unnecessary because CTools require to response
             // full modal window using ctools_modal_form_render() function.
             'callback' => 'ctools_api_plugin_base_configuration_form_ajax',
           ],
-        ]);
+        ];
+
+        foreach (ctools_context_filter($form_state['contexts'], $context_definition) as $context) {
+          // @see \CTools\PluginContexts::__construct()
+          $element['#options'][$context->keyword ?: 'empty'] = $context->identifier;
+        }
+
+        $form['context'][] = $element;
       }
 
       // Set button classes.
