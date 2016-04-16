@@ -667,6 +667,24 @@ function ctools_api_display_contexts(\panels_display $display) {
 }
 
 /**
+ * Add an arbitrary path to the $form_state so it can work with form cache.
+ *
+ * @see ctools_form_include_file()
+ *
+ * @param array $form_state
+ *   A state of form.
+ * @param string $file
+ *   Path to file ("__FILE__" constant also can be used).
+ */
+function ctools_api_form_include_file(array &$form_state, $file) {
+  $file = str_replace(DRUPAL_ROOT . '/', '', $file);
+
+  if (file_exists($file)) {
+    $form_state['build_info']['files'][$file] = $file;
+  }
+}
+
+/**
  * Recursive processing for specific form elements (e.g. "managed_file").
  *
  * @internal
