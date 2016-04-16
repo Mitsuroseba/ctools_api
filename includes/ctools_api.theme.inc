@@ -94,7 +94,5 @@ function _ctools_api_panels_flexible_render_item(\stdClass $renderer, array $ite
     $output .= panels_flexible_render_item_links($renderer, $id, $item);
   }
 
-  $output .= $content;
-
-  return $output;
+  return $output . $content;
 }
