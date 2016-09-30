@@ -130,6 +130,9 @@ function ctools_api_styles_base_settings_form($settings, $display, $pid, $type, 
  *   An instance of plugin contexts object.
  */
 function ctools_api_styles_display_contexts(\panels_display $display, array $plugin, array $conf) {
+  // Ensure that "context" key will be always presented to not see PHP notices.
+  $conf += ['context' => []];
+
   return new \CTools\PluginContexts(
     ctools_context_select(ctools_api_display_contexts($display), $plugin['required context'], $conf['context'])
   );
