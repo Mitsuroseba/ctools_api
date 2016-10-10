@@ -18,7 +18,16 @@ function ctools_api_search_plugins() {
     foreach (autoload_paths() as $base => $modules) {
       foreach ($modules as $path => $module) {
         foreach (file_scan_directory($path, '/\.inc$/') as $file) {
-          $class = str_replace('/', '\\', trim(str_replace([$path, '.inc'], '', $file->uri), '/'));
+          $class = explode('/', trim(str_replace([$path, '.inc'], '', $file->uri), '/'));
+
+          // If first part of namespace isn't equal to its base then we
+          // have a deal with PSR-4 standard. Append a base namespace to
+          // have right path.
+          if ($class[0] !== $base) {
+            array_unshift($class, $base);
+          }
+
+          $class = implode('\\', $class);
 
           if (!isset($plugins[$class]) && class_exists($class)) {
             $interfaces = class_implements($class);
