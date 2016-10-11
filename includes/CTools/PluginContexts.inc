@@ -39,7 +39,7 @@ class PluginContexts {
           $context->keyword = 'user';
         }
 
-        $this->contexts[$context->keyword ?: 'empty'] = new PluginContext($context);
+        $this->contexts[] = new PluginContext($context);
       }
     }
   }
@@ -47,21 +47,21 @@ class PluginContexts {
   /**
    * Ensure that context is not registered.
    *
-   * @param string $name
-   *   Context name.
+   * @param string $argument
+   *   Context keyword or argument or "keyword:argument".
    *
    * @return bool
    *   Checking state.
    */
-  public function has($name) {
-    return isset($this->contexts[$name]);
+  public function has($argument) {
+    return $this->selectBy($argument) !== FALSE;
   }
 
   /**
    * Get specific context.
    *
-   * @param string $name
-   *   Context name.
+   * @param string $argument
+   *   Context keyword or argument or "keyword:argument".
    *
    * @return PluginContext
    *   Context object.
@@ -69,24 +69,40 @@ class PluginContexts {
    * @throws \InvalidArgumentException
    *   When context does not exists.
    */
-  public function get($name) {
-    if (!$this->has($name)) {
-      throw new \InvalidArgumentException(t('Context with name "@name" is not registered.', [
-        '@name' => $name,
+  public function get($argument) {
+    $context = $this->selectBy($argument);
+
+    if (FALSE === $context) {
+      throw new \InvalidArgumentException(t('The "@argument" context is not registered.', [
+        '@argument' => $argument,
       ]));
     }
 
-    return $this->contexts[$name];
+    return $context;
   }
 
   /**
-   * Get list of all registered contexts.
+   * Select context by its properties or their combination.
    *
-   * @return string[]
-   *   Registered context names.
+   * @param string $argument
+   *   Context keyword or argument or "keyword:argument".
+   *
+   * @return PluginContext|bool
+   *   Context object or FALSE if it was not found.
    */
-  public function registered() {
-    return array_keys($this->contexts);
+  protected function selectBy($argument) {
+    foreach ($this->contexts as $context) {
+      $context_info = $context->info();
+
+      if (
+        in_array($argument, [$context_info->keyword, $context_info->argument]) ||
+        $argument === "$context_info->keyword:$context_info->argument"
+      ) {
+        return $context;
+      }
+    }
+
+    return FALSE;
   }
 
 }
