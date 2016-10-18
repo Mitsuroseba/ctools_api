@@ -17,6 +17,10 @@ class PluginContexts {
    * @var PluginContext[]
    */
   private $contexts = [];
+  /**
+   * @var ctools_context[]
+   */
+  private $rawContexts = [];
 
   /**
    * PluginContexts constructor.
@@ -25,6 +29,7 @@ class PluginContexts {
    *   An array of contexts.
    */
   public function __construct($contexts) {
+    $this->rawContexts = $contexts;
     if (!is_array($contexts)) {
       $contexts = [$contexts];
     }
@@ -103,6 +108,15 @@ class PluginContexts {
     }
 
     return FALSE;
+  }
+
+  /**
+   * Get raw ctools context.
+   * 
+   * @return array|\ctools_context[]
+   */
+  public function getRawContexts() {
+    return $this->rawContexts;
   }
 
 }
