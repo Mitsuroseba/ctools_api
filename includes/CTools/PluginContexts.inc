@@ -30,6 +30,7 @@ class PluginContexts {
    */
   public function __construct($contexts) {
     $this->rawContexts = $contexts;
+
     if (!is_array($contexts)) {
       $contexts = [$contexts];
     }
